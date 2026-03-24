@@ -1,202 +1,239 @@
 import { createClient } from "@/lib/supabase/server"
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ convenio?: string }>
+}) {
+  const { convenio } = await searchParams
   const supabase = await createClient()
 
-  // Total pacientes
-  const { count: totalPatients } = await supabase
-    .from("users")
-    .select("*", { count: "exact", head: true })
-    .eq("role", "patient")
-
-  // Pacientes activos últimos 7 días
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-  const { count: activeWeek } = await supabase
-    .from("users")
-    .select("*", { count: "exact", head: true })
-    .eq("role", "patient")
-    .gte("last_login_at", sevenDaysAgo.toISOString())
-
-  // Pacientes activos últimos 30 días
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  const { count: activeMonth } = await supabase
-    .from("users")
-    .select("*", { count: "exact", head: true })
-    .eq("role", "patient")
-    .gte("last_login_at", thirtyDaysAgo.toISOString())
 
-  // Total módulos completados
-  const { count: totalCompletions } = await supabase
-    .from("module_completions")
-    .select("*", { count: "exact", head: true })
+  // Base query filtrada por convenio
+  let patientQuery = supabase.from("users").select("*", { count: "exact", head: true }).eq("role", "patient")
+  if (convenio && convenio !== "todos") patientQuery = patientQuery.eq("convenio_code", convenio)
 
-  // Total módulos publicados
-  const { count: totalModules } = await supabase
-    .from("modules")
-    .select("*", { count: "exact", head: true })
-    .eq("is_published", true)
+  const [
+    { count: totalPatients },
+    { count: activeWeek },
+    { count: activeMonth },
+    { count: totalCompletions },
+    { count: totalModules },
+    { count: unansweredMessages },
+    { data: convenios },
+    { data: allPatients },
+    { data: allCompletions },
+    { data: taskSubs },
+    { data: quizResps },
+    { data: modules },
+  ] = await Promise.all([
+    patientQuery,
+    supabase.from("users").select("*", { count: "exact", head: true }).eq("role", "patient")
+      .gte("last_login_at", sevenDaysAgo.toISOString())
+      .then((r) => convenio && convenio !== "todos"
+        ? supabase.from("users").select("*", { count: "exact", head: true }).eq("role", "patient").eq("convenio_code", convenio).gte("last_login_at", sevenDaysAgo.toISOString())
+        : r),
+    supabase.from("users").select("*", { count: "exact", head: true }).eq("role", "patient")
+      .gte("last_login_at", thirtyDaysAgo.toISOString()),
+    supabase.from("module_completions").select("*", { count: "exact", head: true }),
+    supabase.from("modules").select("*", { count: "exact", head: true }).eq("is_published", true),
+    supabase.from("messages").select("*", { count: "exact", head: true }).is("read_at", null),
+    supabase.from("convenios").select("code, name").eq("is_active", true).order("code"),
+    supabase.from("users").select("id, name, convenio_code, registered_at, is_active").eq("role", "patient"),
+    supabase.from("module_completions").select("user_id, module_id"),
+    supabase.from("task_submissions").select("user_id"),
+    supabase.from("quiz_responses").select("user_id"),
+    supabase.from("modules").select("id, title, order").eq("is_published", true).order("order"),
+  ])
 
-  // Módulo más completado
-  const { data: topModule } = await supabase
-    .from("module_completions")
-    .select("module_id, modules(title)")
-    .limit(100)
+  // KPIs calculados
+  const suspendedCount = allPatients?.filter((p) => !p.is_active).length ?? 0
+  const completionsByModule = new Map<string, number>()
+  allCompletions?.forEach((c) => {
+    completionsByModule.set(c.module_id, (completionsByModule.get(c.module_id) ?? 0) + 1)
+  })
 
-  const moduleCounts = new Map<string, { count: number; title: string }>()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  topModule?.forEach((mc: any) => {
-    const existing = moduleCounts.get(mc.module_id)
-    if (existing) {
-      existing.count++
-    } else {
-      moduleCounts.set(mc.module_id, {
-        count: 1,
-        title: mc.modules?.title ?? "Desconocido",
-      })
+  let mostCompletedTitle = "—"
+  let mostCompletedCount = 0
+  completionsByModule.forEach((count, moduleId) => {
+    if (count > mostCompletedCount) {
+      mostCompletedCount = count
+      mostCompletedTitle = modules?.find((m) => m.id === moduleId)?.title ?? "—"
     }
   })
 
-  let mostCompletedModule = "—"
-  let maxCount = 0
-  moduleCounts.forEach((val) => {
-    if (val.count > maxCount) {
-      maxCount = val.count
-      mostCompletedModule = val.title
-    }
+  const avgProgress = totalPatients && totalModules && totalPatients > 0
+    ? Math.round(((totalCompletions ?? 0) / ((totalPatients ?? 1) * (totalModules ?? 1))) * 100)
+    : 0
+
+  const uniqueTaskUsers = new Set(taskSubs?.map((t) => t.user_id)).size
+  const uniqueQuizUsers = new Set(quizResps?.map((q) => q.user_id)).size
+
+  // Pacientes nuevos esta semana
+  const newThisWeek = allPatients?.filter(
+    (p) => new Date(p.registered_at) >= sevenDaysAgo
+  ).length ?? 0
+
+  // Por convenio stats
+  const byConvenio = new Map<string, number>()
+  allPatients?.forEach((p) => {
+    const c = p.convenio_code ?? "Sin convenio"
+    byConvenio.set(c, (byConvenio.get(c) ?? 0) + 1)
   })
 
-  // Mensajes sin responder
-  const { count: unansweredMessages } = await supabase
-    .from("messages")
-    .select("*", { count: "exact", head: true })
-    .is("read_at", null)
-    .neq("from_user_id", (await supabase.auth.getUser()).data.user!.id)
+  // Progreso por módulo (% de pacientes que lo completaron)
+  const moduleProgress = modules?.map((mod) => ({
+    title: mod.title.length > 28 ? mod.title.slice(0, 28) + "…" : mod.title,
+    order: mod.order,
+    count: completionsByModule.get(mod.id) ?? 0,
+    pct: totalPatients && totalPatients > 0
+      ? Math.round(((completionsByModule.get(mod.id) ?? 0) / totalPatients) * 100)
+      : 0,
+  })) ?? []
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-neutral">Dashboard</h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold text-neutral">Dashboard</h1>
 
-      {/* Métricas principales */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          label="Pacientes registrados"
-          value={totalPatients ?? 0}
-          color="primary"
-        />
-        <MetricCard
-          label="Activos (7 días)"
-          value={activeWeek ?? 0}
-          color="secondary"
-        />
-        <MetricCard
-          label="Activos (30 días)"
-          value={activeMonth ?? 0}
-          color="secondary"
-        />
-        <MetricCard
-          label="Mensajes sin leer"
-          value={unansweredMessages ?? 0}
-          color={unansweredMessages && unansweredMessages > 0 ? "error" : "tertiary"}
-        />
+        {/* Filtro por convenio */}
+        <form method="GET" className="flex items-center gap-2">
+          <select
+            name="convenio"
+            defaultValue={convenio ?? "todos"}
+            className="rounded-lg border border-tertiary/30 bg-white px-3 py-2 text-sm text-neutral focus:border-secondary focus:outline-none"
+          >
+            <option value="todos">Todos los convenios</option>
+            {convenios?.map((c) => (
+              <option key={c.code} value={c.code}>{c.name}</option>
+            ))}
+          </select>
+          <button type="submit" className="rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-white hover:bg-secondary/90">
+            Filtrar
+          </button>
+        </form>
       </div>
 
-      {/* Métricas de progreso */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* KPIs principales */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard label="Pacientes registrados" value={totalPatients ?? 0} color="primary" icon="users" />
+        <MetricCard label="Nuevos esta semana" value={newThisWeek} color="secondary" icon="plus" />
+        <MetricCard label="Activos (7 días)" value={activeWeek ?? 0} color="secondary" icon="activity" />
+        <MetricCard label="Accesos suspendidos" value={suspendedCount} color={suspendedCount > 0 ? "error" : "tertiary"} icon="lock" />
+      </div>
+
+      {/* KPIs secundarios */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard label="Activos (30 días)" value={activeMonth ?? 0} color="secondary" icon="calendar" />
+        <MetricCard label="Progreso global" value={avgProgress} suffix="%" color="success" icon="chart" />
+        <MetricCard label="Con tareas enviadas" value={uniqueTaskUsers} color="primary" icon="pencil" />
+        <MetricCard label="Mensajes sin leer" value={unansweredMessages ?? 0} color={unansweredMessages && unansweredMessages > 0 ? "error" : "tertiary"} icon="message" />
+      </div>
+
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        {/* Módulo más completado */}
         <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-tertiary">Total completaciones</p>
-          <p className="mt-1 text-2xl font-bold text-neutral">{totalCompletions ?? 0}</p>
-        </div>
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-tertiary">Tasa de completación</p>
-          <p className="mt-1 text-2xl font-bold text-success">
-            {totalPatients && totalModules && totalPatients > 0
-              ? Math.round(((totalCompletions ?? 0) / ((totalPatients ?? 1) * (totalModules ?? 1))) * 100)
-              : 0}%
-          </p>
-          <p className="mt-0.5 text-xs text-tertiary">completados / desbloqueados</p>
-        </div>
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-tertiary">Módulo más completado</p>
-          <p className="mt-1 text-lg font-semibold text-neutral">{mostCompletedModule}</p>
-          {maxCount > 0 && (
-            <p className="text-xs text-tertiary">{maxCount} completaciones</p>
+          <p className="mb-3 font-semibold text-neutral">Módulo más completado</p>
+          <p className="text-lg font-bold text-secondary">{mostCompletedTitle}</p>
+          {mostCompletedCount > 0 && (
+            <p className="mt-0.5 text-sm text-tertiary">{mostCompletedCount} completaciones</p>
           )}
+          <div className="mt-3 text-sm text-tertiary">
+            Pacientes con quizzes: <span className="font-semibold text-neutral">{uniqueQuizUsers}</span>
+          </div>
+        </div>
+
+        {/* Por convenio */}
+        <div className="rounded-xl bg-white p-5 shadow-sm">
+          <p className="mb-3 font-semibold text-neutral">Pacientes por convenio</p>
+          <div className="space-y-2">
+            {Array.from(byConvenio.entries())
+              .sort((a, b) => b[1] - a[1])
+              .map(([code, count]) => {
+                const pct = totalPatients ? Math.round((count / totalPatients) * 100) : 0
+                return (
+                  <div key={code} className="flex items-center gap-3">
+                    <span className="w-20 shrink-0 font-mono text-xs font-bold text-primary">{code}</span>
+                    <div className="flex-1">
+                      <div className="h-2 overflow-hidden rounded-full bg-background">
+                        <div className="h-full rounded-full bg-secondary" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                    <span className="w-16 text-right text-xs text-tertiary">{count} ({pct}%)</span>
+                  </div>
+                )
+              })}
+            {byConvenio.size === 0 && (
+              <p className="text-sm text-tertiary">Sin datos aún.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Progreso por módulo */}
+      <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
+        <p className="mb-4 font-semibold text-neutral">Completación por módulo</p>
+        <div className="space-y-2.5">
+          {moduleProgress.map((mod) => (
+            <div key={mod.order} className="flex items-center gap-3">
+              <span className="w-5 shrink-0 text-center text-xs font-bold text-tertiary">{mod.order}</span>
+              <span className="w-56 shrink-0 truncate text-xs text-neutral">{mod.title}</span>
+              <div className="flex-1">
+                <div className="h-2 overflow-hidden rounded-full bg-background">
+                  <div className="h-full rounded-full bg-secondary transition-all" style={{ width: `${mod.pct}%` }} />
+                </div>
+              </div>
+              <span className="w-20 text-right text-xs text-tertiary">{mod.count} ({mod.pct}%)</span>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Acciones rápidas */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <a
-          href="/admin/pacientes"
-          className="flex items-center gap-3 rounded-xl bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-            <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          </div>
-          <div>
-            <p className="font-medium text-neutral">Ver pacientes</p>
-            <p className="text-xs text-tertiary">Gestionar perfiles y progreso</p>
-          </div>
-        </a>
-        <a
-          href="/admin/codigos"
-          className="flex items-center gap-3 rounded-xl bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/10">
-            <svg className="h-5 w-5 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
-          </div>
-          <div>
-            <p className="font-medium text-neutral">Códigos de acceso</p>
-            <p className="text-xs text-tertiary">Generar y gestionar códigos</p>
-          </div>
-        </a>
-        <a
-          href="/admin/contenido"
-          className="flex items-center gap-3 rounded-xl bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
-            <svg className="h-5 w-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-          </div>
-          <div>
-            <p className="font-medium text-neutral">Gestión de contenido</p>
-            <p className="text-xs text-tertiary">Módulos y lecciones</p>
-          </div>
-        </a>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { href: "/admin/pacientes", label: "Ver pacientes", sub: "Gestionar perfiles y progreso", color: "primary" },
+          { href: "/admin/convenios", label: "Convenios", sub: "Gestionar empresas aliadas", color: "secondary" },
+          { href: "/admin/codigos", label: "Códigos de acceso", sub: "Crear y gestionar códigos", color: "secondary" },
+          { href: "/admin/contenido", label: "Contenido", sub: "Módulos y lecciones", color: "success" },
+        ].map((item) => (
+          <a
+            key={item.href}
+            href={item.href}
+            className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+          >
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-${item.color}/10`}>
+              <div className={`h-2 w-2 rounded-full bg-${item.color}`} />
+            </div>
+            <div>
+              <p className="font-medium text-neutral">{item.label}</p>
+              <p className="text-xs text-tertiary">{item.sub}</p>
+            </div>
+          </a>
+        ))}
       </div>
     </div>
   )
 }
 
 function MetricCard({
-  label,
-  value,
-  color,
+  label, value, color, suffix = "", icon,
 }: {
-  label: string
-  value: number
-  color: string
+  label: string; value: number; color: string; suffix?: string; icon?: string
 }) {
   const colorClasses: Record<string, string> = {
-    primary: "text-primary",
-    secondary: "text-secondary",
-    success: "text-success",
-    error: "text-error",
-    tertiary: "text-tertiary",
+    primary: "text-primary", secondary: "text-secondary",
+    success: "text-success", error: "text-error", tertiary: "text-tertiary",
   }
-
   return (
     <div className="rounded-xl bg-white p-5 shadow-sm">
       <p className="text-sm text-tertiary">{label}</p>
       <p className={`mt-1 text-3xl font-bold ${colorClasses[color] ?? "text-neutral"}`}>
-        {value}
+        {value}{suffix}
       </p>
     </div>
   )

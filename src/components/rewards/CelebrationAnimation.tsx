@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 
 interface Particle {
   id: number
@@ -26,6 +26,18 @@ export default function CelebrationAnimation({
 }) {
   const [particles, setParticles] = useState<Particle[]>([])
   const [visible, setVisible] = useState(false)
+  const [done, setDone] = useState(false)
+  const onCompleteRef = useRef(onComplete)
+  useEffect(() => { onCompleteRef.current = onComplete }, [onComplete])
+
+  // Manejar fin de animación fuera del updater de estado
+  useEffect(() => {
+    if (done) {
+      setVisible(false)
+      onCompleteRef.current?.()
+      setDone(false)
+    }
+  }, [done])
 
   const createParticles = useCallback(() => {
     const newParticles: Particle[] = []
@@ -64,8 +76,7 @@ export default function CelebrationAnimation({
         }))
         if (updated.every(p => p.opacity <= 0)) {
           clearInterval(interval)
-          setVisible(false)
-          onComplete?.()
+          setDone(true)
           return []
         }
         return updated
