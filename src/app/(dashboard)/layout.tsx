@@ -42,6 +42,7 @@ export default async function DashboardLayout({
     <DashboardShell
       userName={profile.name}
       unreadMessages={unreadCount ?? 0}
+      totalPoints={profile.total_points ?? 0}
     >
       {children}
     </DashboardShell>

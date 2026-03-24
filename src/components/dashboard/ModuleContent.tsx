@@ -3,7 +3,10 @@
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import type { ContentBlock, QuizResponse, TaskSubmission, QuizContent, QuizQuestion, VideoContent, TextContent, PdfContent, TaskContent } from "@/types/database"
+import type { ContentBlock, QuizResponse, TaskSubmission, QuizContent, QuizQuestion, VideoContent, TextContent, PdfContent, TaskContent, Achievement } from "@/types/database"
+import { onModuleComplete, onQuizComplete, onTaskSubmit } from "@/lib/rewards-actions"
+import CelebrationAnimation from "@/components/rewards/CelebrationAnimation"
+import { AchievementUnlockToast } from "@/components/rewards/AchievementBadge"
 
 export default function ModuleContent({
   moduleId,
@@ -20,6 +23,8 @@ export default function ModuleContent({
 }) {
   const [isCompleted, setIsCompleted] = useState(initialCompleted)
   const [completing, setCompleting] = useState(false)
+  const [showCelebration, setShowCelebration] = useState(false)
+  const [newAchievement, setNewAchievement] = useState<Achievement | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -33,13 +38,25 @@ export default function ModuleContent({
       module_id: moduleId,
     })
 
+    // Otorgar puntos y verificar logros
+    await onModuleComplete(user.id, moduleId)
+
     setIsCompleted(true)
     setCompleting(false)
+    setShowCelebration(true)
     router.refresh()
   }
 
   return (
     <div className="space-y-8">
+      <CelebrationAnimation show={showCelebration} onComplete={() => setShowCelebration(false)} />
+      {newAchievement && (
+        <AchievementUnlockToast
+          achievement={newAchievement}
+          onClose={() => setNewAchievement(null)}
+        />
+      )}
+
       {blocks.map((block) => (
         <ContentBlockRenderer
           key={block.id}
@@ -57,7 +74,7 @@ export default function ModuleContent({
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span className="font-medium">Módulo completado</span>
+            <span className="font-medium">Módulo completado — +100 puntos</span>
           </div>
         ) : (
           <button
@@ -65,7 +82,7 @@ export default function ModuleContent({
             disabled={completing}
             className="w-full rounded-xl bg-success px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:bg-success/90 hover:shadow-xl disabled:opacity-50"
           >
-            {completing ? "Guardando..." : "Marcar como completado ✓"}
+            {completing ? "Guardando..." : "Marcar como completado"}
           </button>
         )}
       </div>
@@ -228,6 +245,10 @@ function QuizBlock({
     setResults(newResults)
     setSubmitted(true)
     setSubmitting(false)
+
+    // Otorgar puntos
+    const allCorrect = Object.values(newResults).every(Boolean)
+    await onQuizComplete(user.id, moduleId, allCorrect)
   }
 
   const totalQuestions = content.questions.length
@@ -388,6 +409,9 @@ function TaskBlock({
       module_id: moduleId,
       content: text.trim(),
     })
+
+    // Otorgar puntos
+    await onTaskSubmit(user.id, moduleId)
 
     setSubmitted(true)
     setSubmitting(false)

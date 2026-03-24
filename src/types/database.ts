@@ -123,3 +123,52 @@ export interface TaskContent {
   title: string
   instructions: string
 }
+
+// Sistema de Recompensas
+export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond'
+export type AchievementCategory = 'modules' | 'quizzes' | 'tasks' | 'streaks' | 'special'
+
+export interface Achievement {
+  id: string
+  key: string
+  title: string
+  description: string
+  category: AchievementCategory
+  icon: string
+  points: number
+  requirement_type: string
+  requirement_value: number
+  tier: AchievementTier
+  sort_order: number
+}
+
+export interface UserAchievement {
+  id: string
+  user_id: string
+  achievement_id: string
+  unlocked_at: string
+  notified: boolean
+  achievement?: Achievement
+}
+
+export interface PointsLog {
+  id: string
+  user_id: string
+  points: number
+  reason: string
+  reference_id: string | null
+  created_at: string
+}
+
+export interface UserRewardsProfile {
+  total_points: number
+  current_streak: number
+  best_streak: number
+  modules_completed: number
+  quizzes_completed: number
+  quizzes_perfect: number
+  tasks_submitted: number
+  achievements_unlocked: UserAchievement[]
+  all_achievements: Achievement[]
+  discount_tier: 'none' | '25' | '30'
+}
