@@ -156,15 +156,24 @@ export function getModulesToUnlock(
   }
 
   const now = new Date()
-  const regDate = new Date(registeredAt)
+  let regDate = new Date(registeredAt)
+  
+  // Safe fallback if date is completely invalid to prevent infinite loops
+  if (isNaN(regDate.getTime())) {
+    regDate = new Date()
+  }
 
   // Count how many Mondays have passed since registration
   let mondayCount = 0
   const checkDate = new Date(regDate)
-  // Move to first Monday after registration
-  while (checkDate.getDay() !== 1) {
+  
+  // Move to first Monday after registration (circuit breaker at 7 days to guarantee safety)
+  let loopCount = 0
+  while (checkDate.getDay() !== 1 && loopCount < 7) {
     checkDate.setDate(checkDate.getDate() + 1)
+    loopCount++
   }
+  
   // Count Mondays
   while (checkDate <= now) {
     mondayCount++

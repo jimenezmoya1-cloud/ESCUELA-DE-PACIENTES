@@ -57,7 +57,7 @@ export default function MiCaminoClient({
         </p>
       </div>
 
-      {userEmail === "prueba@caimed.com" && (
+      {userEmail === "daniel.jimenez@caimed.com" && (
         <button
           onClick={handleTestUnlock}
           disabled={unlocking}
