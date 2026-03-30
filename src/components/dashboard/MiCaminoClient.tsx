@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 import type { ModuleWithStatus } from "@/types/database"
 import ModuleRoadmap from "@/components/dashboard/ModuleRoadmap"
 import ComponentSelector from "@/components/dashboard/ComponentSelector"
@@ -10,13 +12,34 @@ export default function MiCaminoClient({
   currentModule,
   needsComponentSelection,
   patientId,
+  userEmail,
 }: {
   modulesWithStatus: ModuleWithStatus[]
   currentModule: ModuleWithStatus | null
   needsComponentSelection: boolean
   patientId: string
+  userEmail: string
 }) {
   const [showSelector, setShowSelector] = useState(needsComponentSelection)
+  const [unlocking, setUnlocking] = useState(false)
+  const router = useRouter()
+  const supabase = createClient()
+
+  async function handleTestUnlock() {
+    if (!confirm("¿Desbloquear todos los módulos?")) return
+    setUnlocking(true)
+    for (const mod of modulesWithStatus) {
+      if (mod.status === "locked_next" || mod.status === "locked_future") {
+        await supabase.from("patient_module_unlocks").upsert({
+          patient_id: patientId,
+          module_id: mod.id,
+          unlocked_at: new Date().toISOString()
+        }, { onConflict: "patient_id,module_id" })
+      }
+    }
+    setUnlocking(false)
+    router.refresh()
+  }
 
   return (
     <div>
@@ -33,6 +56,16 @@ export default function MiCaminoClient({
           Tu programa de salud cardiovascular personalizado
         </p>
       </div>
+
+      {userEmail === "prueba@caimed.com" && (
+        <button
+          onClick={handleTestUnlock}
+          disabled={unlocking}
+          className="mb-8 w-full rounded-xl bg-purple-600 px-4 py-3 text-sm font-bold text-white shadow-lg transition-colors hover:bg-purple-700 disabled:opacity-50"
+        >
+          {unlocking ? "Desbloqueando..." : "⚡️ MODO PRUEBA: Desbloquear todos los módulos (Admin Tool)"}
+        </button>
+      )}
 
       <ModuleRoadmap modules={modulesWithStatus} />
 
@@ -62,3 +95,4 @@ export default function MiCaminoClient({
     </div>
   )
 }
+

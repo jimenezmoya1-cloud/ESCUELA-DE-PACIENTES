@@ -15,15 +15,6 @@ const navItems = [
     ),
   },
   {
-    href: "/mensajes",
-    label: "Mensajes",
-    icon: (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-      </svg>
-    ),
-  },
-  {
     href: "/recompensas",
     label: "Recompensas",
     icon: (
@@ -47,7 +38,7 @@ const navItems = [
 
 export default function DashboardShell({
   userName,
-  unreadMessages,
+  unreadMessages, // Keep prop to avoid breaking other files relying on this interface although unused now
   totalPoints = 0,
   children,
 }: {
@@ -92,21 +83,6 @@ export default function DashboardShell({
               Hola, <span className="font-medium text-[#212B52]">{userName.split(" ")[0]}</span>
             </span>
 
-            {/* Notificaciones de mensajes */}
-            <Link
-              href="/mensajes"
-              className="relative rounded-lg p-2 text-tertiary transition-colors hover:bg-background hover:text-[#1E8DCE]"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              {unreadMessages > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white">
-                  {unreadMessages > 9 ? "9+" : unreadMessages}
-                </span>
-              )}
-            </Link>
-
             {/* Cerrar sesión */}
             <button
               onClick={handleLogout}
@@ -137,11 +113,6 @@ export default function DashboardShell({
                   >
                     {item.icon}
                     {item.label}
-                    {item.href === "/mensajes" && unreadMessages > 0 && (
-                      <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white">
-                        {unreadMessages > 9 ? "9+" : unreadMessages}
-                      </span>
-                    )}
                   </Link>
                 </li>
               )
@@ -170,11 +141,6 @@ export default function DashboardShell({
                 >
                   {item.icon}
                   {item.label}
-                  {item.href === "/mensajes" && unreadMessages > 0 && (
-                    <span className="absolute -top-0.5 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white">
-                      {unreadMessages > 9 ? "9+" : unreadMessages}
-                    </span>
-                  )}
                 </Link>
               </li>
             )
