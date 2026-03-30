@@ -52,15 +52,26 @@ export function buildPersonalizedRoute(
     const key = COMPONENT_NAME_TO_KEY[comp.component_name]
     if (key) {
       const mod = allModules.find((m) => m.component_key === key && m.id !== mod1?.id)
-      if (mod) route.push(mod)
+      if (mod && !route.find((r) => r.id === mod.id)) {
+        route.push(mod)
+      }
     }
   }
 
-  // 5. Salud Sexual — always at the end
+  // 5. Salud Sexual — always at the end of the priority selection (5th position)
   const saludSexual = allModules.find((m) => m.component_key === 'salud_sexual')
   if (saludSexual && !route.find((m) => m.id === saludSexual.id)) {
     route.push(saludSexual)
   }
+
+  // 6. Remaining modules, sorted alphabetically
+  const remainingModules = allModules.filter(
+    (m) => !route.some((r) => r.id === m.id)
+  )
+
+  remainingModules.sort((a, b) => a.title.localeCompare(b.title, 'es-CO', { numeric: true }))
+
+  route.push(...remainingModules)
 
   return route
 }

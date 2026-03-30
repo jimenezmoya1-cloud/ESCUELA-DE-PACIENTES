@@ -27,7 +27,11 @@ export default function LoginPage() {
       })
 
       if (authError) {
-        setError("Correo o contraseña incorrectos.")
+        if (authError.message.includes("Email not confirmed")) {
+          setError("Debe confirmar su correo electrónico antes de ingresar.")
+        } else {
+          setError("Correo o contraseña incorrectos.")
+        }
         return
       }
 
