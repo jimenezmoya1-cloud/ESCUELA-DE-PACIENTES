@@ -80,7 +80,7 @@ export default function DashboardShell({
               {totalPoints}
             </Link>
             <span className="hidden text-sm text-tertiary sm:block">
-              Hola, <span className="font-medium text-[#212B52]">{userName.split(" ")[0]}</span>
+              Hola, <span className="font-medium text-[#212B52]">{(userName || "Usuario").split(" ")[0]}</span>
             </span>
 
             {/* Cerrar sesión */}

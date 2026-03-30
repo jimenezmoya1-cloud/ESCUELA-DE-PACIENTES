@@ -120,7 +120,7 @@ export default async function MiCaminoPage() {
       currentModule={currentModule ?? null}
       needsComponentSelection={needsComponentSelection}
       patientId={user!.id}
-      userEmail={user!.email!}
+      userEmail={user?.email || ""}
     />
   )
 }
