@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-primary: #202B52;
-  --color-secondary: #1A62DD;
+  --color-primary: #06559F;
+  --color-secondary: #1E8DCE;
   --color-tertiary: #6A778F;
-  --color-neutral: #1A202C;
+  --color-neutral: #212B52;
   --color-background: #F0F4FA;
   --color-white: #FFFFFF;
-  --color-success: #22C55E;
+  --color-success: #58AE33;
   --color-error: #EF4444;
   --color-warning: #F59E0B;
 }
@@ -20,12 +20,43 @@
   src: url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
 }
 
+html {
+  font-size: 17px;
+}
+
 body {
   background: var(--color-background);
   color: var(--color-neutral);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+h1 {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+h3 {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+/* Responsive font scaling — ensure mobile doesn't break */
+@media (max-width: 640px) {
+  html {
+    font-size: 16px;
+  }
+  h1 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
 }
 
 /* Scrollbar sutil */
@@ -69,6 +100,11 @@ body {
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
   50% { box-shadow: 0 0 20px 10px rgba(234, 179, 8, 0.1); }
+}
+
+@keyframes progress-fill {
+  0% { stroke-dashoffset: var(--circumference); }
+  100% { stroke-dashoffset: var(--offset); }
 }
 
 .animate-scale-in {

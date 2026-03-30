@@ -8,6 +8,7 @@ export interface User {
   access_code_used: string | null
   registered_at: string
   last_login_at: string | null
+  has_selected_components: boolean
 }
 
 export interface AccessCode {
@@ -27,6 +28,7 @@ export interface Module {
   order: number
   days_to_unlock: number
   is_published: boolean
+  component_key: string | null
   created_at: string
   updated_at: string
 }
@@ -83,13 +85,101 @@ export interface Session {
   ended_at: string | null
 }
 
-// Tipos derivados para la UI
+// ====== NEW TYPES ======
+
+// Patient Component Selection
+export interface PatientComponent {
+  id: string
+  patient_id: string
+  component_name: string
+  priority_order: number
+  created_at: string
+}
+
+// Available components for selection
+export const AVAILABLE_COMPONENTS = [
+  'Acceso a medicamentos',
+  'Nicotina',
+  'Glucosa',
+  'Alimentación',
+  'Actividad física',
+  'Adherencia',
+  'Colesterol',
+  'Red de apoyo',
+  'Peso',
+  'Sueño',
+  'Salud mental',
+  'Empoderamiento',
+  'Presión arterial',
+] as const
+
+export type ComponentName = typeof AVAILABLE_COMPONENTS[number]
+
+// Map component names to module component_keys
+export const COMPONENT_TO_MODULE_KEY: Record<string, string> = {
+  'Acceso a medicamentos': 'adherencia',
+  'Nicotina': 'nicotina',
+  'Glucosa': 'glucosa',
+  'Alimentación': 'alimentacion',
+  'Actividad física': 'actividad_fisica',
+  'Adherencia': 'adherencia',
+  'Colesterol': 'colesterol',
+  'Red de apoyo': 'red_de_apoyo',
+  'Peso': 'peso',
+  'Sueño': 'sueno',
+  'Salud mental': 'salud_mental',
+  'Empoderamiento': 'empowerment',
+  'Presión arterial': 'presion_arterial',
+}
+
+// Submodules
+export interface Submodule {
+  id: string
+  module_id: string
+  title: string
+  description: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface SubmoduleCompletion {
+  id: string
+  user_id: string
+  submodule_id: string
+  completed_at: string
+}
+
+// Patient Module Unlocks
+export interface PatientModuleUnlock {
+  id: string
+  patient_id: string
+  module_id: string
+  unlocked_at: string
+}
+
+// Module PDFs
+export interface ModulePdf {
+  id: string
+  module_id: string
+  submodule_id: string | null
+  filename: string
+  storage_path: string
+  file_size: number | null
+  created_at: string
+}
+
+// ====== DERIVED TYPES ======
+
 export type ModuleStatus = 'completed' | 'current' | 'locked_next' | 'locked_future'
 
 export interface ModuleWithStatus extends Module {
   status: ModuleStatus
-  unlock_date: Date
+  unlock_date: Date | null
   completed_at?: string
+  progress_percent: number
+  submodules_total: number
+  submodules_completed: number
 }
 
 // Tipos para contenido de bloques

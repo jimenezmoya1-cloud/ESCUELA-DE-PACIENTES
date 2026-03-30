@@ -11,6 +11,7 @@ interface ModuleItem {
   days_to_unlock: number
   is_published: boolean
   blocksCount: number
+  submodulesCount: number
 }
 
 export default function ModuleReorder({
@@ -96,7 +97,7 @@ export default function ModuleReorder({
           <div className="flex-1 min-w-0">
             <p className="font-medium text-neutral truncate">{mod.title}</p>
             <p className="text-xs text-tertiary">
-              Desbloqueo: día {mod.days_to_unlock} · {mod.blocksCount} bloques de contenido
+              {mod.blocksCount} bloques · {mod.submodulesCount} submódulos · Desbloqueo: día {mod.days_to_unlock}
             </p>
           </div>
 

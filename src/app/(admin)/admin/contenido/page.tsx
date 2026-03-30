@@ -10,6 +10,18 @@ export default async function ContenidoPage() {
     .select("*, content_blocks(id)")
     .order("order", { ascending: true })
 
+  // Get submodule counts
+  const submoduleCounts: Record<string, number> = {}
+  if (modules) {
+    for (const mod of modules) {
+      const { count } = await supabase
+        .from("submodules")
+        .select("*", { count: "exact", head: true })
+        .eq("module_id", mod.id)
+      submoduleCounts[mod.id] = count ?? 0
+    }
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -37,6 +49,7 @@ export default async function ContenidoPage() {
             days_to_unlock: m.days_to_unlock,
             is_published: m.is_published,
             blocksCount: (m.content_blocks as { id: string }[])?.length ?? 0,
+            submodulesCount: submoduleCounts[m.id] ?? 0,
           }))}
         />
       </div>

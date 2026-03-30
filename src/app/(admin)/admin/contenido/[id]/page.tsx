@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import ModuleEditor from "@/components/admin/ModuleEditor"
+import SubmoduleEditor from "@/components/admin/SubmoduleEditor"
+import PdfUploader from "@/components/admin/PdfUploader"
 
 export default async function EditModulePage({
   params,
@@ -43,6 +45,20 @@ export default async function EditModulePage({
     .eq("module_id", id)
     .order("order", { ascending: true })
 
+  // Get submodules
+  const { data: submodules } = await supabase
+    .from("submodules")
+    .select("*")
+    .eq("module_id", id)
+    .order("sort_order", { ascending: true })
+
+  // Get module PDFs
+  const { data: modulePdfs } = await supabase
+    .from("module_pdfs")
+    .select("*")
+    .eq("module_id", id)
+    .order("created_at", { ascending: true })
+
   return (
     <div>
       <a
@@ -55,7 +71,12 @@ export default async function EditModulePage({
         Volver a contenido
       </a>
       <h1 className="mb-6 text-2xl font-bold text-neutral">Editar: {module.title}</h1>
-      <ModuleEditor module={module} blocks={blocks ?? []} />
+
+      <div className="space-y-6">
+        <ModuleEditor module={module} blocks={blocks ?? []} />
+        <SubmoduleEditor moduleId={id} submodules={submodules ?? []} />
+        <PdfUploader moduleId={id} pdfs={modulePdfs ?? []} />
+      </div>
     </div>
   )
 }

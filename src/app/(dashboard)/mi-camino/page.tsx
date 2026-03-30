@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
-import { getModulesWithStatus } from "@/lib/modules"
+import { buildPersonalizedRoute, getModulesWithStatus, getModulesToUnlock } from "@/lib/modules"
 import ModuleRoadmap from "@/components/dashboard/ModuleRoadmap"
+import MiCaminoClient from "@/components/dashboard/MiCaminoClient"
 
 export default async function MiCaminoPage() {
   const supabase = await createClient()
@@ -8,64 +9,117 @@ export default async function MiCaminoPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("registered_at")
+    .select("registered_at, has_selected_components")
     .eq("id", user!.id)
     .single()
 
+  // Get all published modules
   const { data: modules } = await supabase
     .from("modules")
     .select("*")
     .eq("is_published", true)
     .order("order", { ascending: true })
 
+  // Get patient's selected components
+  const { data: patientComponents } = await supabase
+    .from("patient_components")
+    .select("*")
+    .eq("patient_id", user!.id)
+    .order("priority_order", { ascending: true })
+
+  // Build personalized route
+  const routeModules = buildPersonalizedRoute(
+    modules ?? [],
+    patientComponents ?? []
+  )
+
+  // Get existing unlocks
+  const { data: existingUnlocks } = await supabase
+    .from("patient_module_unlocks")
+    .select("*")
+    .eq("patient_id", user!.id)
+
+  // Check and perform new unlocks
+  const newUnlockIds = getModulesToUnlock(
+    routeModules,
+    existingUnlocks ?? [],
+    profile?.registered_at ?? new Date().toISOString()
+  )
+
+  // Save new unlocks to DB
+  if (newUnlockIds.length > 0) {
+    for (const moduleId of newUnlockIds) {
+      await supabase.from("patient_module_unlocks").upsert({
+        patient_id: user!.id,
+        module_id: moduleId,
+        unlocked_at: new Date().toISOString(),
+      }, { onConflict: "patient_id,module_id" })
+    }
+  }
+
+  // Get all unlocks (including just-created)
+  const { data: allUnlocks } = await supabase
+    .from("patient_module_unlocks")
+    .select("*")
+    .eq("patient_id", user!.id)
+
+  // Get completions
   const { data: completions } = await supabase
     .from("module_completions")
     .select("*")
     .eq("user_id", user!.id)
 
+  // Get submodule counts per module
+  const submoduleCounts: Record<string, { total: number; completed: number }> = {}
+  for (const mod of routeModules) {
+    const { count: totalSubs } = await supabase
+      .from("submodules")
+      .select("*", { count: "exact", head: true })
+      .eq("module_id", mod.id)
+
+    const { data: subIds } = await supabase
+      .from("submodules")
+      .select("id")
+      .eq("module_id", mod.id)
+
+    let completedSubs = 0
+    if (subIds && subIds.length > 0) {
+      const { count: compCount } = await supabase
+        .from("submodule_completions")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user!.id)
+        .in("submodule_id", subIds.map((s) => s.id))
+
+      completedSubs = compCount ?? 0
+    }
+
+    submoduleCounts[mod.id] = {
+      total: totalSubs ?? 0,
+      completed: completedSubs,
+    }
+  }
+
   const modulesWithStatus = getModulesWithStatus(
-    modules ?? [],
+    routeModules,
     completions ?? [],
-    profile?.registered_at ?? new Date().toISOString()
+    allUnlocks ?? [],
+    submoduleCounts,
   )
+
+  // Check if Module 1 is completed but components not yet selected
+  const module1 = modulesWithStatus.find((_, i) => i === 0)
+  const module1Completed = module1?.status === "completed"
+  const needsComponentSelection = module1Completed && !profile?.has_selected_components
 
   // Encontrar la siguiente tarea pendiente
   const currentModule = modulesWithStatus.find((m) => m.status === "current")
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-neutral">Mi Camino</h1>
-        <p className="mt-1 text-sm text-tertiary">
-          Su programa de salud cardiovascular en 14 módulos
-        </p>
-      </div>
-
-      <ModuleRoadmap modules={modulesWithStatus} />
-
-      {/* Card fija: Siguiente tarea */}
-      {currentModule && (
-        <div className="fixed bottom-20 left-4 right-4 z-20 lg:bottom-6 lg:left-auto lg:right-8 lg:w-80">
-          <a
-            href={`/modulos/${currentModule.id}`}
-            className="flex items-center gap-3 rounded-xl bg-primary p-4 text-white shadow-lg transition-transform hover:scale-[1.02]"
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-white/70">Siguiente lección</p>
-              <p className="truncate text-sm font-medium">{currentModule.title}</p>
-            </div>
-            <svg className="h-5 w-5 shrink-0 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </a>
-        </div>
-      )}
-    </div>
+    <MiCaminoClient
+      modulesWithStatus={modulesWithStatus}
+      currentModule={currentModule ?? null}
+      needsComponentSelection={needsComponentSelection}
+      patientId={user!.id}
+    />
   )
 }

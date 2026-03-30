@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
-import { formatDate, calculateProgress, getModulesWithStatus } from "@/lib/modules"
+import { formatDate, calculateProgress, getModulesWithStatus, buildPersonalizedRoute } from "@/lib/modules"
 import AdminMessageThread from "@/components/admin/AdminMessageThread"
 
 export default async function PacienteDetailPage({
@@ -28,16 +28,61 @@ export default async function PacienteDetailPage({
     .eq("is_published", true)
     .order("order", { ascending: true })
 
+  // Get patient's selected components
+  const { data: patientComponents } = await supabase
+    .from("patient_components")
+    .select("*")
+    .eq("patient_id", id)
+    .order("priority_order", { ascending: true })
+
+  // Build personalized route
+  const routeModules = buildPersonalizedRoute(
+    modules ?? [],
+    patientComponents ?? []
+  )
+
   // Completaciones
   const { data: completions } = await supabase
     .from("module_completions")
     .select("*")
     .eq("user_id", id)
 
+  // Get unlocks
+  const { data: unlocks } = await supabase
+    .from("patient_module_unlocks")
+    .select("*")
+    .eq("patient_id", id)
+
+  // Get submodule counts
+  const submoduleCounts: Record<string, { total: number; completed: number }> = {}
+  for (const mod of routeModules) {
+    const { count: totalSubs } = await supabase
+      .from("submodules")
+      .select("*", { count: "exact", head: true })
+      .eq("module_id", mod.id)
+
+    const { data: subIds } = await supabase
+      .from("submodules")
+      .select("id")
+      .eq("module_id", mod.id)
+
+    let completedSubs = 0
+    if (subIds && subIds.length > 0) {
+      const { count: compCount } = await supabase
+        .from("submodule_completions")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", id)
+        .in("submodule_id", subIds.map((s) => s.id))
+      completedSubs = compCount ?? 0
+    }
+    submoduleCounts[mod.id] = { total: totalSubs ?? 0, completed: completedSubs }
+  }
+
   const modulesWithStatus = getModulesWithStatus(
-    modules ?? [],
+    routeModules,
     completions ?? [],
-    patient.registered_at
+    unlocks ?? [],
+    submoduleCounts,
   )
 
   const progress = calculateProgress(modules?.length ?? 0, completions?.length ?? 0)

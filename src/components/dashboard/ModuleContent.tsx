@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import type { ContentBlock, QuizResponse, TaskSubmission, QuizContent, QuizQuestion, VideoContent, TextContent, PdfContent, TaskContent, Achievement } from "@/types/database"
+import type { ContentBlock, QuizResponse, TaskSubmission, QuizContent, QuizQuestion, VideoContent, TextContent, PdfContent, TaskContent, Achievement, Submodule, SubmoduleCompletion, ModulePdf } from "@/types/database"
 import { onModuleComplete, onQuizComplete, onTaskSubmit } from "@/lib/rewards-actions"
 import CelebrationAnimation from "@/components/rewards/CelebrationAnimation"
 import { AchievementUnlockToast } from "@/components/rewards/AchievementBadge"
@@ -14,17 +14,26 @@ export default function ModuleContent({
   isCompleted: initialCompleted,
   existingQuizResponses,
   existingTaskSubmission,
+  submodules = [],
+  submoduleCompletions = [],
+  modulePdfs = [],
 }: {
   moduleId: string
   blocks: ContentBlock[]
   isCompleted: boolean
   existingQuizResponses: QuizResponse[]
   existingTaskSubmission: TaskSubmission | null
+  submodules?: Submodule[]
+  submoduleCompletions?: SubmoduleCompletion[]
+  modulePdfs?: ModulePdf[]
 }) {
   const [isCompleted, setIsCompleted] = useState(initialCompleted)
   const [completing, setCompleting] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null)
+  const [completedSubIds, setCompletedSubIds] = useState<Set<string>>(
+    new Set(submoduleCompletions.map((c) => c.submodule_id))
+  )
   const router = useRouter()
   const supabase = createClient()
 
@@ -47,6 +56,35 @@ export default function ModuleContent({
     router.refresh()
   }
 
+  async function handleSubmoduleToggle(submoduleId: string) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    if (completedSubIds.has(submoduleId)) {
+      // Remove completion
+      await supabase
+        .from("submodule_completions")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("submodule_id", submoduleId)
+
+      setCompletedSubIds((prev) => {
+        const next = new Set(prev)
+        next.delete(submoduleId)
+        return next
+      })
+    } else {
+      // Add completion
+      await supabase.from("submodule_completions").insert({
+        user_id: user.id,
+        submodule_id: submoduleId,
+      })
+
+      setCompletedSubIds((prev) => new Set(prev).add(submoduleId))
+    }
+    router.refresh()
+  }
+
   return (
     <div className="space-y-8">
       <CelebrationAnimation show={showCelebration} onComplete={() => setShowCelebration(false)} />
@@ -57,6 +95,52 @@ export default function ModuleContent({
         />
       )}
 
+      {/* Submodules section */}
+      {submodules.length > 0 && (
+        <div className="rounded-xl bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold text-[#212B52]">Secciones del módulo</h3>
+          <div className="space-y-3">
+            {submodules.map((sub, idx) => {
+              const isDone = completedSubIds.has(sub.id)
+              return (
+                <div
+                  key={sub.id}
+                  className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-all ${
+                    isDone
+                      ? "border-[#58AE33]/30 bg-[#58AE33]/5"
+                      : "border-gray-200 hover:border-[#1E8DCE]/30"
+                  }`}
+                >
+                  <button
+                    onClick={() => handleSubmoduleToggle(sub.id)}
+                    className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+                      isDone
+                        ? "border-[#58AE33] bg-[#58AE33]"
+                        : "border-gray-300 hover:border-[#06559F]"
+                    }`}
+                  >
+                    {isDone && (
+                      <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium ${isDone ? "text-[#58AE33] line-through" : "text-[#212B52]"}`}>
+                      {idx + 1}. {sub.title}
+                    </p>
+                    {sub.description && (
+                      <p className="mt-1 text-xs text-tertiary">{sub.description}</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Content blocks */}
       {blocks.map((block) => (
         <ContentBlockRenderer
           key={block.id}
@@ -67,10 +151,46 @@ export default function ModuleContent({
         />
       ))}
 
+      {/* Module PDFs */}
+      {modulePdfs.length > 0 && (
+        <div className="rounded-xl bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold text-[#212B52]">Recursos descargables</h3>
+          <div className="space-y-3">
+            {modulePdfs.map((pdf) => (
+              <div key={pdf.id} className="flex items-center gap-4 rounded-xl border border-gray-200 p-4 hover:border-[#1E8DCE]/30 transition-colors">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-50">
+                  <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-[#212B52] truncate">{pdf.filename}</p>
+                  <p className="text-xs text-tertiary">
+                    {pdf.file_size ? `${(pdf.file_size / 1024 / 1024).toFixed(1)} MB · ` : ""}Archivo PDF
+                  </p>
+                </div>
+                <a
+                  href={pdf.storage_path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="flex items-center gap-2 rounded-lg bg-[#06559F] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#06559F]/90"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Descargar
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Botón de completado */}
       <div className="border-t border-tertiary/10 pt-8">
         {isCompleted ? (
-          <div className="flex items-center justify-center gap-2 rounded-xl bg-success/10 p-4 text-success">
+          <div className="flex items-center justify-center gap-2 rounded-xl bg-[#58AE33]/10 p-4 text-[#58AE33]">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -80,7 +200,7 @@ export default function ModuleContent({
           <button
             onClick={handleComplete}
             disabled={completing}
-            className="w-full rounded-xl bg-success px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:bg-success/90 hover:shadow-xl disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-r from-[#58AE33] to-[#067F36] px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:shadow-xl disabled:opacity-50"
           >
             {completing ? "Guardando..." : "Marcar como completado"}
           </button>
@@ -164,7 +284,7 @@ function TextBlock({ content }: { content: TextContent }) {
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm lg:p-8">
       <div
-        className="prose prose-neutral max-w-none prose-headings:text-neutral prose-p:text-neutral/80 prose-a:text-secondary prose-strong:text-neutral"
+        className="prose prose-neutral max-w-none prose-headings:text-[#212B52] prose-p:text-neutral/80 prose-a:text-[#1E8DCE] prose-strong:text-[#212B52]"
         dangerouslySetInnerHTML={{ __html: content.html }}
       />
     </div>
@@ -175,20 +295,20 @@ function PdfBlock({ content }: { content: PdfContent }) {
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm">
       <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-error/10">
-          <svg className="h-6 w-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-50">
+          <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
         </div>
         <div className="flex-1">
-          <p className="font-medium text-neutral">{content.filename || "Documento PDF"}</p>
+          <p className="font-medium text-[#212B52]">{content.filename || "Documento PDF"}</p>
           <p className="text-sm text-tertiary">Archivo PDF para descargar</p>
         </div>
         <a
           href={content.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-secondary/90"
+          className="rounded-lg bg-[#06559F] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#06559F]/90"
         >
           Descargar
         </a>
@@ -256,7 +376,7 @@ function QuizBlock({
 
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm lg:p-8">
-      <h3 className="mb-6 text-lg font-semibold text-neutral">Evaluación</h3>
+      <h3 className="mb-6 text-lg font-semibold text-[#212B52]">Evaluación</h3>
 
       <div className="space-y-6">
         {content.questions.map((q, qi) => (
@@ -276,7 +396,7 @@ function QuizBlock({
 
       {submitted ? (
         <div className="mt-6 rounded-lg bg-background p-4 text-center">
-          <p className="text-lg font-semibold text-neutral">
+          <p className="text-lg font-semibold text-[#212B52]">
             Resultado: {correctAnswers}/{totalQuestions}
           </p>
           <p className="text-sm text-tertiary">
@@ -289,7 +409,7 @@ function QuizBlock({
         <button
           onClick={handleSubmitQuiz}
           disabled={submitting || Object.keys(answers).length < totalQuestions}
-          className="mt-6 w-full rounded-lg bg-secondary px-4 py-3 font-medium text-white transition-colors hover:bg-secondary/90 disabled:opacity-50"
+          className="mt-6 w-full rounded-lg bg-[#1E8DCE] px-4 py-3 font-medium text-white transition-colors hover:bg-[#1E8DCE]/90 disabled:opacity-50"
         >
           {submitting ? "Enviando..." : "Enviar respuestas"}
         </button>
@@ -333,12 +453,12 @@ function QuestionItem({
       className={`rounded-lg border p-4 ${
         submitted
           ? isCorrect
-            ? "border-success/30 bg-success/5"
-            : "border-error/30 bg-error/5"
+            ? "border-[#58AE33]/30 bg-[#58AE33]/5"
+            : "border-red-300/30 bg-red-50/50"
           : "border-tertiary/20"
       }`}
     >
-      <p className="mb-3 font-medium text-neutral">
+      <p className="mb-3 font-medium text-[#212B52]">
         {index + 1}. {question.text}
       </p>
       <div className="space-y-2">
@@ -354,13 +474,13 @@ function QuestionItem({
               className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-colors ${
                 submitted
                   ? isCorrectOption
-                    ? "border-success/50 bg-success/10 text-success"
+                    ? "border-[#58AE33]/50 bg-[#58AE33]/10 text-[#067F36]"
                     : isSelected
-                      ? "border-error/50 bg-error/10 text-error"
+                      ? "border-red-300/50 bg-red-50 text-red-600"
                       : "border-tertiary/20 text-tertiary"
                   : isSelected
-                    ? "border-secondary bg-secondary/10 text-secondary"
-                    : "border-tertiary/20 text-neutral hover:border-secondary/50"
+                    ? "border-[#06559F] bg-[#06559F]/10 text-[#06559F]"
+                    : "border-tertiary/20 text-neutral hover:border-[#1E8DCE]/50"
               }`}
             >
               <span
@@ -419,7 +539,7 @@ function TaskBlock({
 
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm lg:p-8">
-      <h3 className="mb-2 text-lg font-semibold text-neutral">
+      <h3 className="mb-2 text-lg font-semibold text-[#212B52]">
         {content.title || "Tarea"}
       </h3>
       {content.instructions && (
@@ -427,8 +547,8 @@ function TaskBlock({
       )}
 
       {submitted ? (
-        <div className="rounded-lg bg-success/5 border border-success/20 p-4">
-          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-success">
+        <div className="rounded-lg bg-[#58AE33]/5 border border-[#58AE33]/20 p-4">
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-[#58AE33]">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -443,12 +563,12 @@ function TaskBlock({
             onChange={(e) => setText(e.target.value)}
             rows={6}
             placeholder="Escriba su respuesta aquí..."
-            className="w-full rounded-lg border border-tertiary/30 px-4 py-3 text-neutral placeholder:text-tertiary/50 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+            className="w-full rounded-lg border border-tertiary/30 px-4 py-3 text-neutral placeholder:text-tertiary/50 focus:border-[#1E8DCE] focus:outline-none focus:ring-2 focus:ring-[#1E8DCE]/20"
           />
           <button
             onClick={handleSubmit}
             disabled={submitting || !text.trim()}
-            className="mt-3 rounded-lg bg-secondary px-6 py-2.5 font-medium text-white transition-colors hover:bg-secondary/90 disabled:opacity-50"
+            className="mt-3 rounded-lg bg-[#1E8DCE] px-6 py-2.5 font-medium text-white transition-colors hover:bg-[#1E8DCE]/90 disabled:opacity-50"
           >
             {submitting ? "Enviando..." : "Enviar tarea"}
           </button>
