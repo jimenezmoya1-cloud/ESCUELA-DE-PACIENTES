@@ -13,6 +13,7 @@ export default function ComponentSelector({
   onComplete?: () => void
 }) {
   const [selected, setSelected] = useState<string[]>([])
+  const [wantsSaludSexual, setWantsSaludSexual] = useState<boolean | null>(null)
   const [saving, setSaving] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const router = useRouter()
@@ -29,12 +30,24 @@ export default function ComponentSelector({
   }
 
   function handleShowConfirm() {
-    if (selected.length !== 3) return
+    if (selected.length !== 3 || wantsSaludSexual === null) return
     setShowConfirm(true)
   }
 
+  // Build the preview route
+  function getPreviewRoute(): string[] {
+    const route = ["Inicio de ciclo: Tu mapa personal de salud"]
+    route.push(...selected)
+    if (wantsSaludSexual) {
+      route.push("Salud Sexual")
+    }
+    route.push("...módulos restantes...")
+    route.push("Cierre de ciclo")
+    return route
+  }
+
   async function handleSave() {
-    if (selected.length !== 3) return
+    if (selected.length !== 3 || wantsSaludSexual === null) return
     setSaving(true)
 
     try {
@@ -53,17 +66,13 @@ export default function ComponentSelector({
         })
       }
 
-      // Always add "Salud Sexual" as the 4th component
-      await supabase.from("patient_components").insert({
-        patient_id: patientId,
-        component_name: "Salud Sexual",
-        priority_order: 4,
-      })
-
-      // Mark user as having selected components
+      // Mark user as having selected components + salud sexual preference
       await supabase
         .from("users")
-        .update({ has_selected_components: true })
+        .update({
+          has_selected_components: true,
+          wants_salud_sexual: wantsSaludSexual,
+        })
         .eq("id", patientId)
 
       onComplete?.()
@@ -76,16 +85,18 @@ export default function ComponentSelector({
     }
   }
 
+  const canConfirm = selected.length === 3 && wantsSaludSexual !== null
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl animate-scale-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl animate-scale-in my-auto shrink-0">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#06559F] to-[#1E8DCE] px-6 py-5">
           <h2 className="text-xl font-bold text-white">
-            Selecciona tus 3 componentes prioritarios
+            Personaliza tu ruta de salud
           </h2>
           <p className="mt-1 text-sm text-white/80">
-            Elige en orden de prioridad los componentes en los que deseas enfocarte
+            Elige tus 3 prioridades y configura tu camino
           </p>
         </div>
 
@@ -125,7 +136,7 @@ export default function ComponentSelector({
           </div>
 
           {/* Component grid */}
-          <div className="grid grid-cols-2 gap-2 max-h-[320px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-1">
             {AVAILABLE_COMPONENTS.map((comp) => {
               const idx = selected.indexOf(comp)
               const isSelected = idx !== -1
@@ -156,6 +167,35 @@ export default function ComponentSelector({
               )
             })}
           </div>
+
+          {/* Sexual Health opt-in */}
+          <div className="mt-5 rounded-xl border-2 border-[#1E8DCE]/20 bg-[#1E8DCE]/5 p-4">
+            <p className="text-sm font-medium text-[#06559F] mb-3">
+              ¿Deseas incluir un módulo de Salud Sexual en tu ruta?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setWantsSaludSexual(true)}
+                className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-medium transition-all ${
+                  wantsSaludSexual === true
+                    ? "border-[#06559F] bg-[#06559F] text-white"
+                    : "border-gray-300 bg-white text-gray-600 hover:border-[#1E8DCE]"
+                }`}
+              >
+                Sí
+              </button>
+              <button
+                onClick={() => setWantsSaludSexual(false)}
+                className={`flex-1 rounded-lg border-2 px-4 py-2.5 text-sm font-medium transition-all ${
+                  wantsSaludSexual === false
+                    ? "border-[#06559F] bg-[#06559F] text-white"
+                    : "border-gray-300 bg-white text-gray-600 hover:border-[#1E8DCE]"
+                }`}
+              >
+                No
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
@@ -163,12 +203,14 @@ export default function ComponentSelector({
           {!showConfirm ? (
             <button
               onClick={handleShowConfirm}
-              disabled={selected.length !== 3}
+              disabled={!canConfirm}
               className="w-full rounded-xl bg-gradient-to-r from-[#06559F] to-[#1E8DCE] px-6 py-3.5 text-base font-semibold text-white shadow-lg transition-all hover:shadow-xl disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {selected.length < 3
                 ? `Selecciona ${3 - selected.length} componente${3 - selected.length > 1 ? "s" : ""} más`
-                : "Confirmar selección"}
+                : wantsSaludSexual === null
+                  ? "Responde la pregunta de Salud Sexual"
+                  : "Confirmar selección"}
             </button>
           ) : (
             <div className="space-y-3">
@@ -177,13 +219,11 @@ export default function ComponentSelector({
                   <strong>Tu ruta personalizada será:</strong>
                 </p>
                 <ol className="mt-2 space-y-1">
-                  <li className="text-xs text-gray-600">1. Módulo introductorio</li>
-                  {selected.map((c, i) => (
-                    <li key={c} className="text-xs text-gray-600">
-                      {i + 2}. {c}
+                  {getPreviewRoute().map((item, i) => (
+                    <li key={i} className="text-xs text-gray-600">
+                      {i + 1}. {item}
                     </li>
                   ))}
-                  <li className="text-xs text-gray-600">{selected.length + 2}. Salud Sexual</li>
                 </ol>
               </div>
               <div className="flex gap-3">

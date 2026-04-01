@@ -15,6 +15,15 @@ const navItems = [
     ),
   },
   {
+    href: "/comunidad",
+    label: "Comunidad",
+    icon: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+      </svg>
+    ),
+  },
+  {
     href: "/recompensas",
     label: "Recompensas",
     icon: (
@@ -62,8 +71,12 @@ export default function DashboardShell({
       <header className="sticky top-0 z-30 border-b border-tertiary/10 bg-white shadow-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           {/* Logo */}
-          <Link href="/mi-camino" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-[#06559F]">CAIMED</span>
+          <Link href="/mi-camino" className="flex items-center gap-3">
+            <img
+              src="/logo-medicina-preventiva.png"
+              alt="Logo Medicina Preventiva CAIMED"
+              className="h-9 w-auto object-contain"
+            />
             <span className="hidden text-xs font-medium text-tertiary sm:block">Escuela de Pacientes</span>
           </Link>
 

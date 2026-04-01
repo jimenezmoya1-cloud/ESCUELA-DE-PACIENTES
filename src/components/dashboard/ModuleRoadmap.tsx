@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import type { ModuleWithStatus } from "@/types/database"
-import { formatDate, getNextMonday } from "@/lib/modules"
+import { formatDate } from "@/lib/modules"
 import CircularProgress from "@/components/ui/CircularProgress"
 
 export default function ModuleRoadmap({
@@ -42,16 +42,16 @@ export default function ModuleRoadmap({
         })}
       </div>
 
-      {/* Info card about Monday unlocking */}
+      {/* Info card about progressive unlocking */}
       <div className="mt-8 rounded-xl border-2 border-dashed border-[#1E8DCE]/30 bg-[#06559F]/5 p-4 text-center">
         <div className="flex items-center justify-center gap-2 text-sm font-medium text-[#06559F]">
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          Los módulos se desbloquean cada lunes
+          Los módulos se desbloquean al avanzar
         </div>
         <p className="mt-1 text-xs text-[#06559F]/70">
-          Tu primer módulo está disponible ahora. Cada lunes se activará el siguiente módulo de tu ruta.
+          Completa cada módulo para desbloquear el siguiente en tu ruta personalizada.
         </p>
       </div>
     </div>
@@ -182,20 +182,19 @@ function ModuleNode({
   }
 
   if (mod.status === "locked_next") {
-    const nextMonday = getNextMonday()
     return (
       <div className={`flex ${alignment}`}>
         <div className="relative flex w-[85%] items-center gap-3 rounded-2xl border-2 border-dashed border-[#1E8DCE]/20 bg-white/60 p-4 backdrop-blur-sm sm:w-[75%]">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-[#1E8DCE]/30 bg-[#1E8DCE]/5">
             <svg className="h-5 w-5 text-[#1E8DCE]/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
           <div className="min-w-0 flex-1">
             <span className="text-xs font-semibold text-[#1E8DCE]/60">Módulo {index + 1}</span>
             <h3 className="mt-0.5 truncate text-[15px] font-medium text-tertiary">{mod.title}</h3>
             <p className="mt-0.5 text-xs text-[#1E8DCE]/50">
-              Se desbloquea el lunes {formatDate(nextMonday)}
+              Completa el módulo anterior para desbloquear
             </p>
           </div>
         </div>

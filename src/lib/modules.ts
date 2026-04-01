@@ -1,77 +1,102 @@
 import type { Module, ModuleCompletion, ModuleWithStatus, PatientComponent, PatientModuleUnlock } from "@/types/database"
+import { COMPONENT_TO_MODULE_KEY } from "@/types/database"
 
 /**
- * Component key mapping from component names to module component_keys
+ * Fixed order for remaining modules (after priorities + optional salud sexual).
+ * Maps component display names to their module component_keys in the correct order.
  */
-const COMPONENT_NAME_TO_KEY: Record<string, string> = {
-  'Acceso a medicamentos': 'adherencia',
-  'Nicotina': 'nicotina',
-  'Glucosa': 'glucosa',
-  'Alimentación': 'alimentacion',
-  'Actividad física': 'actividad_fisica',
-  'Adherencia': 'adherencia',
-  'Colesterol': 'colesterol',
-  'Red de apoyo': 'red_de_apoyo',
-  'Peso': 'peso',
-  'Sueño': 'sueno',
-  'Salud mental': 'salud_mental',
-  'Empoderamiento': 'empowerment',
-  'Presión arterial': 'presion_arterial',
-}
+const REMAINING_MODULES_FIXED_ORDER: string[] = [
+  'empoderamiento_salud',
+  'red_de_apoyo',
+  'adherencia',
+  'actividad_fisica',
+  'alimentacion',
+  'salud_mental',
+  'sueno',
+  'presion_arterial',
+  'glucosa',
+  'colesterol',
+  'nicotina',
+]
 
 /**
  * Builds the personalized route for a patient:
- * 1. Module 1 (empowerment) — always first
- * 2. Component 1 module (patient selected)
- * 3. Component 2 module (patient selected)
- * 4. Component 3 module (patient selected)
- * 5. Salud Sexual module — always last
+ * 1. "Inicio de ciclo" (empowerment/module 1) — always first
+ * 2. Priority 1 module (patient selected)
+ * 3. Priority 2 module (patient selected)
+ * 4. Priority 3 module (patient selected)
+ * 5. Salud Sexual (only if patient opted in)
+ * 6+. Remaining modules in fixed order (skipping those already in route)
+ * Last. "Cierre de ciclo" — always last
  */
 export function buildPersonalizedRoute(
   allModules: Module[],
-  patientComponents: PatientComponent[]
+  patientComponents: PatientComponent[],
+  wantsSaludSexual: boolean = false
 ): Module[] {
   if (patientComponents.length === 0) {
     // If no components selected yet, only show Module 1
-    const mod1 = allModules.find((m) => m.order === 1)
+    const mod1 = allModules.find((m) => m.component_key === 'empowerment' || m.order === 1)
     return mod1 ? [mod1] : []
   }
 
   const route: Module[] = []
+  const usedIds = new Set<string>()
 
-  // 1. Module 1 (empowerment)
+  // 1. "Inicio de ciclo" (always first)
   const mod1 = allModules.find((m) => m.component_key === 'empowerment' || m.order === 1)
-  if (mod1) route.push(mod1)
+  if (mod1) {
+    route.push(mod1)
+    usedIds.add(mod1.id)
+  }
 
-  // 2-4. Selected components (in priority order)
+  // 2-4. Selected priority components (in priority order)
   const sortedComponents = [...patientComponents]
     .filter((c) => c.priority_order <= 3)
     .sort((a, b) => a.priority_order - b.priority_order)
 
   for (const comp of sortedComponents) {
-    const key = COMPONENT_NAME_TO_KEY[comp.component_name]
+    const key = COMPONENT_TO_MODULE_KEY[comp.component_name]
     if (key) {
-      const mod = allModules.find((m) => m.component_key === key && m.id !== mod1?.id)
-      if (mod && !route.find((r) => r.id === mod.id)) {
+      const mod = allModules.find((m) => m.component_key === key && !usedIds.has(m.id))
+      if (mod) {
         route.push(mod)
+        usedIds.add(mod.id)
       }
     }
   }
 
-  // 5. Salud Sexual — always at the end of the priority selection (5th position)
-  const saludSexual = allModules.find((m) => m.component_key === 'salud_sexual')
-  if (saludSexual && !route.find((m) => m.id === saludSexual.id)) {
-    route.push(saludSexual)
+  // 5. Salud Sexual (only if patient opted in)
+  if (wantsSaludSexual) {
+    const saludSexual = allModules.find((m) => m.component_key === 'salud_sexual')
+    if (saludSexual && !usedIds.has(saludSexual.id)) {
+      route.push(saludSexual)
+      usedIds.add(saludSexual.id)
+    }
   }
 
-  // 6. Remaining modules, sorted alphabetically
-  const remainingModules = allModules.filter(
-    (m) => !route.some((r) => r.id === m.id)
-  )
+  // 6+. Remaining modules in FIXED order (not alphabetical)
+  // Skip modules already in the route, cierre de ciclo, and salud_sexual (if not opted in)
+  for (const componentKey of REMAINING_MODULES_FIXED_ORDER) {
+    const mod = allModules.find((m) => m.component_key === componentKey && !usedIds.has(m.id))
+    if (mod) {
+      route.push(mod)
+      usedIds.add(mod.id)
+    }
+  }
 
-  remainingModules.sort((a, b) => a.title.localeCompare(b.title, 'es-CO', { numeric: true }))
+  // Last. "Cierre de ciclo" — always at the end
+  const cierre = allModules.find((m) => m.component_key === 'empowerment_cierre')
+  if (cierre && !usedIds.has(cierre.id)) {
+    route.push(cierre)
+    usedIds.add(cierre.id)
+  }
 
-  route.push(...remainingModules)
+  // Any remaining modules not captured by the fixed order (safety net)
+  const remainingModules = allModules.filter((m) => !usedIds.has(m.id))
+  for (const mod of remainingModules) {
+    route.push(mod)
+  }
 
   return route
 }
@@ -84,13 +109,14 @@ export function isMonday(): boolean {
 }
 
 /**
- * Calculates module unlock status based on Monday-progressive unlocking.
- * 
+ * Calculates module unlock status based on entry-based unlocking.
+ *
  * Logic:
  * - Module 1: always unlocked immediately
- * - Each subsequent Monday: unlock the next module in the route
- * - Unlocking is NOT dependent on completing the previous module
- * - Unlocking is tracked via patient_module_unlocks table
+ * - When patient enters Module 1, Module 2 (first priority) unlocks
+ * - Modules 2 through penultimate: completing one unlocks the next
+ * - When patient enters the penultimate module, the last (Cierre) unlocks
+ * - Cierre NEVER unlocks before entering the penultimate module
  */
 export function getModulesWithStatus(
   routeModules: Module[],
@@ -130,7 +156,7 @@ export function getModulesWithStatus(
     } else if (isUnlocked) {
       status = "current"
     } else {
-      // Check if this is the next one to unlock (next Monday)
+      // Check if this is the next one to unlock
       const prevUnlocked = index === 0 || unlockMap.has(routeModules[index - 1]?.id)
       status = prevUnlocked ? "locked_next" : "locked_future"
     }
@@ -148,54 +174,96 @@ export function getModulesWithStatus(
 }
 
 /**
- * Determines which modules should be unlocked on login.
- * Called on every login — if it's Monday and there are pending modules, unlock the next one.
- * Returns the list of module IDs that should be newly unlocked.
+ * Determines which modules should be unlocked based on access/entry logic.
+ *
+ * New logic (Correction 1):
+ * - Module 1: always unlocked
+ * - When Module 1 is accessed (unlocked), Module 2 unlocks
+ * - Completing a module (2 through penultimate-1) unlocks the next
+ * - Entering the penultimate module unlocks "Cierre de ciclo"
+ *
+ * For backwards compatibility, we also keep the Monday-based system
+ * as a fallback.
  */
 export function getModulesToUnlock(
   routeModules: Module[],
   existingUnlocks: PatientModuleUnlock[],
-  registeredAt: string
+  registeredAt: string,
+  completions: ModuleCompletion[] = [],
+  accessedModuleIds: string[] = []
 ): string[] {
   const unlockSet = new Set(existingUnlocks.map((u) => u.module_id))
+  const completionSet = new Set(completions.map((c) => c.module_id))
+  const accessedSet = new Set(accessedModuleIds)
   const newUnlocks: string[] = []
 
+  if (routeModules.length === 0) return newUnlocks
+
   // Module 1 is always unlocked
-  if (routeModules.length > 0 && !unlockSet.has(routeModules[0].id)) {
+  if (!unlockSet.has(routeModules[0].id)) {
     newUnlocks.push(routeModules[0].id)
     unlockSet.add(routeModules[0].id)
   }
 
+  // When Module 1 is accessed/unlocked, unlock Module 2
+  if (routeModules.length > 1) {
+    const mod1 = routeModules[0]
+    if ((unlockSet.has(mod1.id) || accessedSet.has(mod1.id)) && !unlockSet.has(routeModules[1].id)) {
+      newUnlocks.push(routeModules[1].id)
+      unlockSet.add(routeModules[1].id)
+    }
+  }
+
+  // For modules 2 through the end: completing one unlocks the next
+  for (let i = 1; i < routeModules.length - 1; i++) {
+    const currentMod = routeModules[i]
+    const nextMod = routeModules[i + 1]
+
+    if (completionSet.has(currentMod.id) && !unlockSet.has(nextMod.id)) {
+      newUnlocks.push(nextMod.id)
+      unlockSet.add(nextMod.id)
+    }
+  }
+
+  // Special rule: entering the penultimate module unlocks the last (Cierre)
+  if (routeModules.length >= 2) {
+    const penultimate = routeModules[routeModules.length - 2]
+    const last = routeModules[routeModules.length - 1]
+
+    if ((accessedSet.has(penultimate.id) || unlockSet.has(penultimate.id)) && !unlockSet.has(last.id)) {
+      // Only unlock cierre if the penultimate is actually accessed (unlocked counts as accessed)
+      if (unlockSet.has(penultimate.id)) {
+        newUnlocks.push(last.id)
+        unlockSet.add(last.id)
+      }
+    }
+  }
+
+  // Fallback: Monday-based progressive unlock (keeps existing behavior working)
   const now = new Date()
   let regDate = new Date(registeredAt)
-  
-  // Safe fallback if date is completely invalid to prevent infinite loops
   if (isNaN(regDate.getTime())) {
     regDate = new Date()
   }
 
-  // Count how many Mondays have passed since registration
   let mondayCount = 0
   const checkDate = new Date(regDate)
-  
-  // Move to first Monday after registration (circuit breaker at 7 days to guarantee safety)
   let loopCount = 0
   while (checkDate.getDay() !== 1 && loopCount < 7) {
     checkDate.setDate(checkDate.getDate() + 1)
     loopCount++
   }
-  
-  // Count Mondays
   while (checkDate <= now) {
     mondayCount++
     checkDate.setDate(checkDate.getDate() + 7)
   }
 
-  // We can unlock up to (1 + mondayCount) modules total
-  // Module 1 is the base (already counted), then one more per Monday
   const maxUnlocked = 1 + mondayCount
-
   for (let i = 1; i < routeModules.length && i < maxUnlocked; i++) {
+    // Don't auto-unlock "Cierre de ciclo" (last module) via Monday system
+    const isLastModule = i === routeModules.length - 1
+    if (isLastModule) continue
+
     if (!unlockSet.has(routeModules[i].id)) {
       newUnlocks.push(routeModules[i].id)
       unlockSet.add(routeModules[i].id)

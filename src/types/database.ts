@@ -9,6 +9,7 @@ export interface User {
   registered_at: string
   last_login_at: string | null
   has_selected_components: boolean
+  wants_salud_sexual: boolean
 }
 
 export interface AccessCode {
@@ -96,51 +97,74 @@ export interface PatientComponent {
   created_at: string
 }
 
-// Available components for selection
+// Available components for patient priority selection (excludes fixed modules)
 export const AVAILABLE_COMPONENTS = [
-  'Acceso a medicamentos',
-  'Nicotina',
-  'Glucosa',
-  'Alimentación',
-  'Actividad física',
-  'Adherencia',
-  'Colesterol',
+  'Empoderamiento en salud',
   'Red de apoyo',
-  'Peso',
-  'Sueño',
+  'Acceso a medicamentos',
+  'Actividad física',
+  'Alimentación',
   'Salud mental',
-  'Empoderamiento',
+  'Sueño',
   'Presión arterial',
+  'Glucosa',
+  'Colesterol',
+  'Nicotina',
+] as const
+
+// Fixed order for remaining modules (after priorities + optional salud sexual)
+export const REMAINING_MODULES_ORDER = [
+  'Empoderamiento en salud',
+  'Red de apoyo',
+  'Acceso a medicamentos',
+  'Actividad física',
+  'Alimentación',
+  'Salud mental',
+  'Sueño',
+  'Presión arterial',
+  'Glucosa',
+  'Colesterol',
+  'Nicotina',
 ] as const
 
 export type ComponentName = typeof AVAILABLE_COMPONENTS[number]
 
 // Map component names to module component_keys
 export const COMPONENT_TO_MODULE_KEY: Record<string, string> = {
-  'Acceso a medicamentos': 'adherencia',
-  'Nicotina': 'nicotina',
-  'Glucosa': 'glucosa',
-  'Alimentación': 'alimentacion',
-  'Actividad física': 'actividad_fisica',
-  'Adherencia': 'adherencia',
-  'Colesterol': 'colesterol',
+  'Empoderamiento en salud': 'empoderamiento_salud',
   'Red de apoyo': 'red_de_apoyo',
-  'Peso': 'peso',
-  'Sueño': 'sueno',
+  'Acceso a medicamentos': 'adherencia',
+  'Actividad física': 'actividad_fisica',
+  'Alimentación': 'alimentacion',
   'Salud mental': 'salud_mental',
-  'Empoderamiento': 'empowerment',
+  'Sueño': 'sueno',
   'Presión arterial': 'presion_arterial',
+  'Glucosa': 'glucosa',
+  'Colesterol': 'colesterol',
+  'Nicotina': 'nicotina',
+  'Salud Sexual': 'salud_sexual',
 }
 
-// Submodules
+// Submodules (Sections within modules)
+export type SectionContentType = 'text' | 'video' | 'html' | 'mixed'
+
 export interface Submodule {
   id: string
   module_id: string
   title: string
   description: string | null
+  estimated_minutes: number | null
+  content_type: SectionContentType | null
+  content: SectionContent | null
   sort_order: number
   created_at: string
   updated_at: string
+}
+
+export interface SectionContent {
+  text?: string
+  video_url?: string
+  html?: string
 }
 
 export interface SubmoduleCompletion {
@@ -212,6 +236,33 @@ export interface QuizContent {
 export interface TaskContent {
   title: string
   instructions: string
+}
+
+// Blog comunitario
+export type BlogPostStatus = 'pending' | 'approved' | 'rejected'
+
+export interface BlogPost {
+  id: string
+  patient_id: string
+  patient_name?: string
+  content: string
+  status: BlogPostStatus
+  rejection_reason: string | null
+  moderator_response: string | null
+  responded_by: string | null
+  responded_at: string | null
+  created_at: string
+  approved_at: string | null
+  approved_by: string | null
+}
+
+// App configuration
+export interface AppConfig {
+  id: string
+  key: string
+  value: string
+  created_at: string
+  updated_at: string
 }
 
 // Sistema de Recompensas

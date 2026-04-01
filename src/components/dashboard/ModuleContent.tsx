@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import type { ContentBlock, QuizResponse, TaskSubmission, QuizContent, QuizQuestion, VideoContent, TextContent, PdfContent, TaskContent, Achievement, Submodule, SubmoduleCompletion, ModulePdf } from "@/types/database"
+import type { ContentBlock, QuizResponse, TaskSubmission, QuizContent, QuizQuestion, VideoContent, TextContent, PdfContent, TaskContent, Achievement, Submodule, SubmoduleCompletion, ModulePdf, SectionContent } from "@/types/database"
 import { onModuleComplete, onQuizComplete, onTaskSubmit } from "@/lib/rewards-actions"
 import CelebrationAnimation from "@/components/rewards/CelebrationAnimation"
 import { AchievementUnlockToast } from "@/components/rewards/AchievementBadge"
@@ -34,8 +34,13 @@ export default function ModuleContent({
   const [completedSubIds, setCompletedSubIds] = useState<Set<string>>(
     new Set(submoduleCompletions.map((c) => c.submodule_id))
   )
+  const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
+
+  const totalSections = submodules.length
+  const completedSections = submodules.filter((s) => completedSubIds.has(s.id)).length
+  const sectionProgress = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0
 
   async function handleComplete() {
     setCompleting(true)
@@ -47,7 +52,6 @@ export default function ModuleContent({
       module_id: moduleId,
     })
 
-    // Otorgar puntos y verificar logros
     await onModuleComplete(user.id, moduleId)
 
     setIsCompleted(true)
@@ -61,7 +65,6 @@ export default function ModuleContent({
     if (!user) return
 
     if (completedSubIds.has(submoduleId)) {
-      // Remove completion
       await supabase
         .from("submodule_completions")
         .delete()
@@ -74,7 +77,6 @@ export default function ModuleContent({
         return next
       })
     } else {
-      // Add completion
       await supabase.from("submodule_completions").insert({
         user_id: user.id,
         submodule_id: submoduleId,
@@ -95,44 +97,165 @@ export default function ModuleContent({
         />
       )}
 
-      {/* Submodules section */}
+      {/* Section progress bar */}
       {submodules.length > 0 && (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
+        <div className="rounded-xl bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-[#212B52]">Progreso del módulo</h3>
+            <span className="text-sm font-bold text-[#06559F]">{sectionProgress}%</span>
+          </div>
+          <div className="h-3 w-full overflow-hidden rounded-full bg-gray-100">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#06559F] to-[#58AE33] transition-all duration-500"
+              style={{ width: `${sectionProgress}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-tertiary">
+            {completedSections} de {totalSections} secciones completadas
+          </p>
+        </div>
+      )}
+
+      {/* Sections as horizontal scrollable cards */}
+      {submodules.length > 0 && (
+        <div>
           <h3 className="mb-4 text-lg font-semibold text-[#212B52]">Secciones del módulo</h3>
-          <div className="space-y-3">
+          <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory">
             {submodules.map((sub, idx) => {
               const isDone = completedSubIds.has(sub.id)
+              const isExpanded = expandedSectionId === sub.id
+              const sectionContent = sub.content as SectionContent | null
+
               return (
                 <div
                   key={sub.id}
-                  className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-all ${
+                  className={`snap-start shrink-0 ${isExpanded ? "w-full sm:w-[90%]" : "w-72"} rounded-2xl border-2 transition-all duration-300 ${
                     isDone
                       ? "border-[#58AE33]/30 bg-[#58AE33]/5"
-                      : "border-gray-200 hover:border-[#1E8DCE]/30"
+                      : isExpanded
+                        ? "border-[#06559F]/30 bg-white shadow-lg"
+                        : "border-gray-200 bg-white hover:border-[#1E8DCE]/30 hover:shadow-md"
                   }`}
                 >
+                  {/* Card header - always visible */}
                   <button
-                    onClick={() => handleSubmoduleToggle(sub.id)}
-                    className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
-                      isDone
-                        ? "border-[#58AE33] bg-[#58AE33]"
-                        : "border-gray-300 hover:border-[#06559F]"
-                    }`}
+                    onClick={() => setExpandedSectionId(isExpanded ? null : sub.id)}
+                    className="w-full p-4 text-left"
                   >
-                    {isDone && (
-                      <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    <div className="flex items-start gap-3">
+                      {/* Completion indicator */}
+                      <div
+                        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
+                          isDone
+                            ? "border-[#58AE33] bg-[#58AE33]"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        {isDone ? (
+                          <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <span className="text-xs font-bold text-gray-400">{idx + 1}</span>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`text-sm font-semibold ${isDone ? "text-[#58AE33]" : "text-[#212B52]"}`}>
+                          {sub.title}
+                        </h4>
+                        {sub.description && (
+                          <p className="mt-1 text-xs text-tertiary/70 line-clamp-2">
+                            {sub.description}
+                          </p>
+                        )}
+                        {sub.estimated_minutes && (
+                          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#06559F]/10 px-2 py-0.5 text-[10px] font-medium text-[#06559F]">
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {sub.estimated_minutes} min
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Expand/collapse icon */}
+                      <svg
+                        className={`h-5 w-5 shrink-0 text-tertiary/40 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
-                    )}
+                    </div>
                   </button>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium ${isDone ? "text-[#58AE33] line-through" : "text-[#212B52]"}`}>
-                      {idx + 1}. {sub.title}
-                    </p>
-                    {sub.description && (
-                      <p className="mt-1 text-xs text-tertiary">{sub.description}</p>
-                    )}
-                  </div>
+
+                  {/* Expanded content */}
+                  {isExpanded && sectionContent && (
+                    <div className="border-t border-gray-100 p-4 space-y-4">
+                      {/* Text content */}
+                      {sectionContent.text && (
+                        <div className="prose prose-sm prose-neutral max-w-none">
+                          <p className="whitespace-pre-wrap text-sm text-neutral/80">{sectionContent.text}</p>
+                        </div>
+                      )}
+
+                      {/* Video content */}
+                      {sectionContent.video_url && (
+                        <div className="overflow-hidden rounded-xl">
+                          <div className="relative aspect-video w-full">
+                            <iframe
+                              src={getEmbedUrl(sectionContent.video_url)}
+                              className="absolute inset-0 h-full w-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              loading="lazy"
+                              title={sub.title}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* HTML content */}
+                      {sectionContent.html && (
+                        <div
+                          className="prose prose-sm prose-neutral max-w-none prose-headings:text-[#212B52]"
+                          dangerouslySetInnerHTML={{ __html: sectionContent.html }}
+                        />
+                      )}
+
+                      {/* Mark as complete button */}
+                      <div className="pt-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleSubmoduleToggle(sub.id) }}
+                          className={`w-full rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                            isDone
+                              ? "border-2 border-[#58AE33]/30 bg-[#58AE33]/5 text-[#58AE33] hover:bg-[#58AE33]/10"
+                              : "bg-gradient-to-r from-[#06559F] to-[#1E8DCE] text-white shadow-sm hover:shadow-md"
+                          }`}
+                        >
+                          {isDone ? "Completada — Desmarcar" : "Marcar como completada"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Non-expanded: mark complete button */}
+                  {!isExpanded && (
+                    <div className="px-4 pb-4">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleSubmoduleToggle(sub.id) }}
+                        className={`w-full rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+                          isDone
+                            ? "border border-[#58AE33]/30 text-[#58AE33]"
+                            : "border border-gray-200 text-tertiary hover:border-[#06559F]/30 hover:text-[#06559F]"
+                        }`}
+                      >
+                        {isDone ? "Completada" : "Marcar completada"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -210,6 +333,16 @@ export default function ModuleContent({
   )
 }
 
+function getEmbedUrl(url: string): string {
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`
+
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/)
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`
+
+  return url
+}
+
 function ContentBlockRenderer({
   block,
   moduleId,
@@ -266,18 +399,6 @@ function VideoBlock({ content }: { content: VideoContent }) {
       </div>
     </div>
   )
-}
-
-function getEmbedUrl(url: string): string {
-  // YouTube
-  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)
-  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`
-
-  // Vimeo
-  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/)
-  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`
-
-  return url
 }
 
 function TextBlock({ content }: { content: TextContent }) {
@@ -366,7 +487,6 @@ function QuizBlock({
     setSubmitted(true)
     setSubmitting(false)
 
-    // Otorgar puntos
     const allCorrect = Object.values(newResults).every(Boolean)
     await onQuizComplete(user.id, moduleId, allCorrect)
   }
@@ -530,7 +650,6 @@ function TaskBlock({
       content: text.trim(),
     })
 
-    // Otorgar puntos
     await onTaskSubmit(user.id, moduleId)
 
     setSubmitted(true)

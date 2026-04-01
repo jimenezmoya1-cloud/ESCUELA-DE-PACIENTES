@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
 import { buildPersonalizedRoute, getModulesWithStatus, getModulesToUnlock } from "@/lib/modules"
-import ModuleRoadmap from "@/components/dashboard/ModuleRoadmap"
 import MiCaminoClient from "@/components/dashboard/MiCaminoClient"
 
 export default async function MiCaminoPage() {
@@ -9,7 +8,7 @@ export default async function MiCaminoPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("registered_at, has_selected_components")
+    .select("registered_at, has_selected_components, wants_salud_sexual")
     .eq("id", user!.id)
     .single()
 
@@ -27,10 +26,11 @@ export default async function MiCaminoPage() {
     .eq("patient_id", user!.id)
     .order("priority_order", { ascending: true })
 
-  // Build personalized route
+  // Build personalized route (with sexual health opt-in)
   const routeModules = buildPersonalizedRoute(
     modules ?? [],
-    patientComponents ?? []
+    patientComponents ?? [],
+    profile?.wants_salud_sexual ?? false
   )
 
   // Get existing unlocks
@@ -39,11 +39,19 @@ export default async function MiCaminoPage() {
     .select("*")
     .eq("patient_id", user!.id)
 
-  // Check and perform new unlocks
+  // Get completions
+  const { data: completions } = await supabase
+    .from("module_completions")
+    .select("*")
+    .eq("user_id", user!.id)
+
+  // Check and perform new unlocks (with completion-based logic)
   const newUnlockIds = getModulesToUnlock(
     routeModules,
     existingUnlocks ?? [],
-    profile?.registered_at ?? new Date().toISOString()
+    profile?.registered_at ?? new Date().toISOString(),
+    completions ?? [],
+    (existingUnlocks ?? []).map((u) => u.module_id)
   )
 
   // Save new unlocks to DB
@@ -62,12 +70,6 @@ export default async function MiCaminoPage() {
     .from("patient_module_unlocks")
     .select("*")
     .eq("patient_id", user!.id)
-
-  // Get completions
-  const { data: completions } = await supabase
-    .from("module_completions")
-    .select("*")
-    .eq("user_id", user!.id)
 
   // Get submodule counts per module
   const submoduleCounts: Record<string, { total: number; completed: number }> = {}

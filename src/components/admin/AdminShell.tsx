@@ -51,6 +51,15 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    href: "/admin/blog",
+    label: "Blog",
+    icon: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+      </svg>
+    ),
+  },
 ]
 
 export default function AdminShell({
@@ -73,10 +82,13 @@ export default function AdminShell({
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-tertiary/10 bg-white lg:flex">
-        <div className="flex h-16 items-center border-b border-tertiary/10 px-6">
-          {/* TODO: reemplazar con /public/logo.svg */}
-          <span className="text-xl font-bold text-primary">CAIMED</span>
-          <span className="ml-2 rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+        <div className="flex h-16 items-center border-b border-tertiary/10 px-6 gap-3">
+          <img
+            src="/logo-medicina-preventiva.png"
+            alt="Logo Medicina Preventiva CAIMED"
+            className="h-8 w-auto object-contain"
+          />
+          <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
             Admin
           </span>
         </div>
@@ -120,7 +132,11 @@ export default function AdminShell({
       {/* Header mobile */}
       <div className="flex flex-1 flex-col">
         <header className="flex h-16 items-center justify-between border-b border-tertiary/10 bg-white px-4 lg:hidden">
-          <span className="text-xl font-bold text-primary">CAIMED</span>
+          <img
+            src="/logo-medicina-preventiva.png"
+            alt="Logo Medicina Preventiva CAIMED"
+            className="h-8 w-auto object-contain"
+          />
           <button
             onClick={handleLogout}
             className="text-sm text-tertiary hover:text-error"
