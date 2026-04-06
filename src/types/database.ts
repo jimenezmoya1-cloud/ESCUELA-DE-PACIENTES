@@ -99,7 +99,6 @@ export interface PatientComponent {
 
 // Available components for patient priority selection (excludes fixed modules)
 export const AVAILABLE_COMPONENTS = [
-  'Empoderamiento en salud',
   'Red de apoyo',
   'Acceso a medicamentos',
   'Actividad física',
@@ -114,7 +113,6 @@ export const AVAILABLE_COMPONENTS = [
 
 // Fixed order for remaining modules (after priorities + optional salud sexual)
 export const REMAINING_MODULES_ORDER = [
-  'Empoderamiento en salud',
   'Red de apoyo',
   'Acceso a medicamentos',
   'Actividad física',
@@ -131,7 +129,6 @@ export type ComponentName = typeof AVAILABLE_COMPONENTS[number]
 
 // Map component names to module component_keys
 export const COMPONENT_TO_MODULE_KEY: Record<string, string> = {
-  'Empoderamiento en salud': 'empoderamiento_salud',
   'Red de apoyo': 'red_de_apoyo',
   'Acceso a medicamentos': 'adherencia',
   'Actividad física': 'actividad_fisica',
