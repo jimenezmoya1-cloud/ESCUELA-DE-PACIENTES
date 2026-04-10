@@ -106,7 +106,7 @@ export default function ModuleReorder({
             className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
               mod.is_published
                 ? "bg-success/10 text-success"
-                : "bg-warning/10 text-warning"
+                : "bg-yellow-100 text-yellow-700"
             }`}
           >
             {mod.is_published ? "Publicado" : "Borrador"}

@@ -6,6 +6,7 @@ import { COMPONENT_TO_MODULE_KEY } from "@/types/database"
  * Maps component display names to their module component_keys in the correct order.
  */
 const REMAINING_MODULES_FIXED_ORDER: string[] = [
+  'empoderamiento_salud',
   'red_de_apoyo',
   'adherencia',
   'actividad_fisica',

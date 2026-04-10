@@ -13,8 +13,10 @@ ALTER TABLE public.submodules
   ADD COLUMN IF NOT EXISTS content_type text CHECK (content_type IN ('text', 'video', 'html', 'mixed')),
   ADD COLUMN IF NOT EXISTS content jsonb;
 
--- 3. Relax patient_components priority_order constraint to allow >4
--- (Previously only allowed 1-4; now we store only priorities 1-3 + sexual health is handled separately)
+-- 3. Update patient_components: remove old auto-inserted "Salud Sexual" (priority_order=4)
+--    Sexual health is now stored in users.wants_salud_sexual instead.
+DELETE FROM public.patient_components WHERE priority_order = 4;
+
 ALTER TABLE public.patient_components
   DROP CONSTRAINT IF EXISTS patient_components_priority_order_check;
 
