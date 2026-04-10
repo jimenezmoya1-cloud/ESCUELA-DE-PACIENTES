@@ -69,13 +69,13 @@ export default function DashboardShell({
     <div className="flex min-h-screen flex-col bg-background">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-tertiary/10 bg-white shadow-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4">
           {/* Logo */}
           <Link href="/mi-camino" className="flex items-center gap-3">
             <img
               src="/logo-medicina-preventiva.png"
               alt="Logo Medicina Preventiva CAIMED"
-              className="h-9 w-auto object-contain"
+              className="h-16 w-auto object-contain"
             />
             <span className="hidden text-xs font-medium text-tertiary sm:block">Escuela de Pacientes</span>
           </Link>

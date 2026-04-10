@@ -173,6 +173,14 @@ export async function GET(req: Request) {
     }
   })
 
+  // ─── Helper: freeze header row + autofilter ──────────────────────────────────
+  function styleSheet(ws: XLSX.WorkSheet) {
+    if (ws["!ref"]) {
+      ws["!autofilter"] = { ref: ws["!ref"] }
+      ws["!freeze"] = { xSplit: 0, ySplit: 1, topLeftCell: "A2", activePane: "bottomLeft", state: "frozen" }
+    }
+  }
+
   // ─── Build workbook ───────────────────────────────────────────────────────────
   const wb = XLSX.utils.book_new()
 
@@ -183,9 +191,11 @@ export async function GET(req: Request) {
     { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 10 },
     { wch: 12 }, { wch: 10 },
   ]
+  styleSheet(ws1)
   XLSX.utils.book_append_sheet(wb, ws1, "Resumen Pacientes")
 
   const ws2 = XLSX.utils.json_to_sheet(moduleRows)
+  styleSheet(ws2)
   XLSX.utils.book_append_sheet(wb, ws2, "Progreso por Módulo")
 
   const ws3 = XLSX.utils.json_to_sheet(convenioRows)
@@ -193,6 +203,7 @@ export async function GET(req: Request) {
     { wch: 22 }, { wch: 10 }, { wch: 8 }, { wch: 11 }, { wch: 14 },
     { wch: 14 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 },
   ]
+  styleSheet(ws3)
   XLSX.utils.book_append_sheet(wb, ws3, "Por Convenio")
 
   const ws4 = XLSX.utils.json_to_sheet(engagementRows)
@@ -200,9 +211,11 @@ export async function GET(req: Request) {
     { wch: 25 }, { wch: 14 }, { wch: 16 }, { wch: 12 },
     { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
   ]
+  styleSheet(ws4)
   XLSX.utils.book_append_sheet(wb, ws4, "Participación")
 
-  const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" })
+  // Use array type + Buffer.from for reliable binary output in Next.js
+  const buffer = Buffer.from(XLSX.write(wb, { type: "array", bookType: "xlsx" }))
 
   const filename = `pacientes-caimed-${new Date().toISOString().slice(0, 10)}.xlsx`
 
@@ -210,6 +223,7 @@ export async function GET(req: Request) {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "no-store",
     },
   })
 }

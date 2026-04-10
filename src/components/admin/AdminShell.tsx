@@ -82,11 +82,11 @@ export default function AdminShell({
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-tertiary/10 bg-white lg:flex">
-        <div className="flex h-16 items-center border-b border-tertiary/10 px-6 gap-3">
+        <div className="flex h-20 items-center border-b border-tertiary/10 px-6 gap-3">
           <img
             src="/logo-medicina-preventiva.png"
             alt="Logo Medicina Preventiva CAIMED"
-            className="h-8 w-auto object-contain"
+            className="h-14 w-auto object-contain"
           />
           <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
             Admin
@@ -131,11 +131,11 @@ export default function AdminShell({
 
       {/* Header mobile */}
       <div className="flex flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between border-b border-tertiary/10 bg-white px-4 lg:hidden">
+        <header className="flex h-20 items-center justify-between border-b border-tertiary/10 bg-white px-4 lg:hidden">
           <img
             src="/logo-medicina-preventiva.png"
             alt="Logo Medicina Preventiva CAIMED"
-            className="h-8 w-auto object-contain"
+            className="h-14 w-auto object-contain"
           />
           <button
             onClick={handleLogout}

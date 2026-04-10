@@ -35,18 +35,13 @@ export default function LoginPage() {
         return
       }
 
-      // Actualizar last_login_at
+      // Actualizar last_login_at y obtener rol en una sola query
       if (data.user) {
-        await supabase
+        const { data: profile } = await supabase
           .from("users")
           .update({ last_login_at: new Date().toISOString() })
           .eq("id", data.user.id)
-
-        // Verificar rol para redirección
-        const { data: profile } = await supabase
-          .from("users")
           .select("role")
-          .eq("id", data.user.id)
           .single()
 
         if (profile?.role === "admin") {
