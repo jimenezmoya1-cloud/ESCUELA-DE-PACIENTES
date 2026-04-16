@@ -20,7 +20,11 @@ export default function MiCaminoClient({
   patientId: string
   userEmail: string
 }) {
-  const [showSelector, setShowSelector] = useState(needsComponentSelection)
+  // 'dismissed' tracks if the user completed the selector in THIS session.
+  // Combined with the server-side prop, this guarantees the selector never
+  // re-appears once the user has saved their preferences (has_selected_components = true).
+  const [dismissed, setDismissed] = useState(false)
+  const showSelector = needsComponentSelection && !dismissed
   const [unlocking, setUnlocking] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -46,7 +50,7 @@ export default function MiCaminoClient({
       {showSelector && (
         <ComponentSelector
           patientId={patientId}
-          onComplete={() => setShowSelector(false)}
+          onComplete={() => setDismissed(true)}
         />
       )}
 

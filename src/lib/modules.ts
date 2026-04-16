@@ -2,13 +2,16 @@ import type { Module, ModuleCompletion, ModuleWithStatus, PatientComponent, Pati
 import { COMPONENT_TO_MODULE_KEY } from "@/types/database"
 
 /**
- * Fixed order for remaining modules (after priorities + optional salud sexual).
- * Maps component display names to their module component_keys in the correct order.
+ * Fixed order for remaining modules (after priorities).
+ * 'adherencia' is conditional: only included if takes_chronic_medication === true
+ * 'salud_sexual' is conditional: only included if gender === 'male' && wants_salud_sexual
+ * 'control_peso' is NOT here — it can only appear as a patient-selected priority
  */
 const REMAINING_MODULES_FIXED_ORDER: string[] = [
   'empoderamiento_salud',
   'red_de_apoyo',
-  'adherencia',
+  'adherencia',      // conditional
+  'salud_sexual',    // conditional
   'actividad_fisica',
   'alimentacion',
   'salud_mental',
@@ -21,18 +24,25 @@ const REMAINING_MODULES_FIXED_ORDER: string[] = [
 
 /**
  * Builds the personalized route for a patient:
- * 1. "Inicio de ciclo" (empowerment/module 1) — always first
- * 2. Priority 1 module (patient selected)
- * 3. Priority 2 module (patient selected)
- * 4. Priority 3 module (patient selected)
- * 5. Salud Sexual (only if patient opted in)
- * 6+. Remaining modules in fixed order (skipping those already in route)
+ * 1. "Inicio de ciclo: Tu mapa de salud" (empowerment) — always first
+ * 2. "El incendio que vamos a apagar" (el_incendio) — always second (if module exists)
+ * 3. Priority 1 module (patient selected)
+ * 4. Priority 2 module (patient selected)
+ * 5. Priority 3 module (patient selected)
+ * 6+. Remaining modules in fixed order:
+ *     empoderamiento_salud, red_de_apoyo,
+ *     adherencia (only if takes_chronic_medication),
+ *     salud_sexual (only if male && opted in),
+ *     actividad_fisica, alimentacion, salud_mental, sueno,
+ *     presion_arterial, glucosa, colesterol, nicotina
  * Last. "Cierre de ciclo" — always last
  */
 export function buildPersonalizedRoute(
   allModules: Module[],
   patientComponents: PatientComponent[],
-  wantsSaludSexual: boolean = false
+  wantsSaludSexual: boolean = false,
+  gender: string | null = null,
+  takesChronicMedication: boolean | null = null
 ): Module[] {
   if (patientComponents.length === 0) {
     // If no components selected yet, only show Module 1
@@ -50,7 +60,14 @@ export function buildPersonalizedRoute(
     usedIds.add(mod1.id)
   }
 
-  // 2-4. Selected priority components (in priority order)
+  // 2. "El incendio que vamos a apagar" (always second, if it exists in DB)
+  const elIncendio = allModules.find((m) => m.component_key === 'el_incendio')
+  if (elIncendio && !usedIds.has(elIncendio.id)) {
+    route.push(elIncendio)
+    usedIds.add(elIncendio.id)
+  }
+
+  // 3-5. Selected priority components (in priority order)
   const sortedComponents = [...patientComponents]
     .filter((c) => c.priority_order <= 3)
     .sort((a, b) => a.priority_order - b.priority_order)
@@ -66,18 +83,13 @@ export function buildPersonalizedRoute(
     }
   }
 
-  // 5. Salud Sexual (only if patient opted in)
-  if (wantsSaludSexual) {
-    const saludSexual = allModules.find((m) => m.component_key === 'salud_sexual')
-    if (saludSexual && !usedIds.has(saludSexual.id)) {
-      route.push(saludSexual)
-      usedIds.add(saludSexual.id)
-    }
-  }
-
-  // 6+. Remaining modules in FIXED order (not alphabetical)
-  // Skip modules already in the route, cierre de ciclo, and salud_sexual (if not opted in)
+  // 6+. Remaining modules in FIXED order with conditional filtering
   for (const componentKey of REMAINING_MODULES_FIXED_ORDER) {
+    // Skip adherencia if patient doesn't take chronic medication
+    if (componentKey === 'adherencia' && takesChronicMedication !== true) continue
+    // Skip salud_sexual if not male or not opted in
+    if (componentKey === 'salud_sexual' && !(gender === 'male' && wantsSaludSexual)) continue
+
     const mod = allModules.find((m) => m.component_key === componentKey && !usedIds.has(m.id))
     if (mod) {
       route.push(mod)
@@ -92,7 +104,7 @@ export function buildPersonalizedRoute(
     usedIds.add(cierre.id)
   }
 
-  // Any remaining modules not captured by the fixed order (safety net)
+  // Safety net: any remaining published modules not captured above
   const remainingModules = allModules.filter((m) => !usedIds.has(m.id))
   for (const mod of remainingModules) {
     route.push(mod)

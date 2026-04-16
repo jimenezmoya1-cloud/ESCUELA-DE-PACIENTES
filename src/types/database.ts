@@ -10,6 +10,8 @@ export interface User {
   last_login_at: string | null
   has_selected_components: boolean
   wants_salud_sexual: boolean
+  gender: 'male' | 'female' | null
+  takes_chronic_medication: boolean | null
 }
 
 export interface AccessCode {
@@ -98,13 +100,15 @@ export interface PatientComponent {
 }
 
 // Available components for patient priority selection (excludes fixed modules)
+// NOTE: 'Acceso y adherencia a medicamentos' is NOT here — it's auto-included via the chronic medication question
+// NOTE: 'Salud Sexual Masculina' is NOT here — it's auto-included via the gender+salud sexual question
 export const AVAILABLE_COMPONENTS = [
   'Actividad física',
   'Red de apoyo',
   'Salud mental',
   'Glucosa',
   'Empoderamiento en salud',
-  'Acceso y adherencia a medicamentos',
+  'Control del peso',
   'Alimentación',
   'Salud de sueño',
   'Presión arterial',
@@ -112,11 +116,14 @@ export const AVAILABLE_COMPONENTS = [
   'Nicotina',
 ] as const
 
-// Fixed order for remaining modules (after priorities + optional salud sexual)
+// Fixed order for remaining modules (after priorities)
+// adherencia: conditional on takes_chronic_medication
+// salud_sexual: conditional on gender===male && wants_salud_sexual
 export const REMAINING_MODULES_ORDER = [
   'Empoderamiento en salud',
   'Red de apoyo',
   'Acceso y adherencia a medicamentos',
+  'Salud Sexual Masculina',
   'Actividad física',
   'Alimentación',
   'Salud mental',
@@ -142,7 +149,9 @@ export const COMPONENT_TO_MODULE_KEY: Record<string, string> = {
   'Glucosa': 'glucosa',
   'Colesterol': 'colesterol',
   'Nicotina': 'nicotina',
+  'Control del peso': 'control_peso',
   'Salud Sexual': 'salud_sexual',
+  'Salud Sexual Masculina': 'salud_sexual',
 }
 
 // Submodules (Sections within modules)

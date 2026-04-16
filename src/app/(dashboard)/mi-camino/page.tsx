@@ -15,7 +15,7 @@ export default async function MiCaminoPage() {
     { data: completions },
   ] = await Promise.all([
     supabase.from("users")
-      .select("registered_at, has_selected_components, wants_salud_sexual")
+      .select("registered_at, has_selected_components, wants_salud_sexual, gender, takes_chronic_medication")
       .eq("id", user!.id)
       .single(),
     supabase.from("modules")
@@ -38,7 +38,9 @@ export default async function MiCaminoPage() {
   const routeModules = buildPersonalizedRoute(
     modules ?? [],
     patientComponents ?? [],
-    profile?.wants_salud_sexual ?? false
+    profile?.wants_salud_sexual ?? false,
+    profile?.gender ?? null,
+    profile?.takes_chronic_medication ?? null
   )
 
   // Calculate and persist new unlocks
@@ -110,9 +112,8 @@ export default async function MiCaminoPage() {
     submoduleCounts,
   )
 
-  const module1 = modulesWithStatus[0]
-  const module1Completed = module1?.status === "completed"
-  const needsComponentSelection = module1Completed && !profile?.has_selected_components
+  // Show selector once ever — as soon as user first arrives, regardless of module progress
+  const needsComponentSelection = !profile?.has_selected_components
   const currentModule = modulesWithStatus.find((m) => m.status === "current")
 
   return (
