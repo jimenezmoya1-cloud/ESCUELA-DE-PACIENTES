@@ -68,23 +68,28 @@ export default function ComponentSelector({
         )
       if (insertError) throw insertError
 
-      // Update user profile with all preferences atomically
+      // Save core fields — always available columns
       const { error: updateError } = await supabase
         .from("users")
         .update({
           has_selected_components: true,
-          gender,
-          takes_chronic_medication: takesMedication,
           wants_salud_sexual: gender === 'male' ? (wantsSaludSexual ?? false) : false,
         })
         .eq("id", patientId)
       if (updateError) throw updateError
 
+      // Save new columns from migration-v4 — silently skip if columns don't exist yet
+      await supabase
+        .from("users")
+        .update({ gender, takes_chronic_medication: takesMedication })
+        .eq("id", patientId)
+
       onComplete?.()
       router.refresh()
     } catch (err) {
-      console.error("Error saving components:", err)
-      alert("Error al guardar la selección. Intente de nuevo.")
+      const msg = err instanceof Error ? err.message : JSON.stringify(err)
+      console.error("Error saving components:", msg)
+      alert(`Error al guardar: ${msg}`)
     } finally {
       setSaving(false)
     }
