@@ -68,17 +68,18 @@ export default function ComponentSelector({
         )
       if (insertError) throw insertError
 
-      // Save core fields — always available columns
+      // Mark route as configured — this is the only critical flag
       const { error: updateError } = await supabase
         .from("users")
-        .update({
-          has_selected_components: true,
-          wants_salud_sexual: gender === 'male' ? (wantsSaludSexual ?? false) : false,
-        })
+        .update({ has_selected_components: true })
         .eq("id", patientId)
       if (updateError) throw updateError
 
-      // Save new columns from migration-v4 — silently skip if columns don't exist yet
+      // Save preferences — silently skip if columns don't exist yet (pending migrations)
+      await supabase
+        .from("users")
+        .update({ wants_salud_sexual: gender === 'male' ? (wantsSaludSexual ?? false) : false })
+        .eq("id", patientId)
       await supabase
         .from("users")
         .update({ gender, takes_chronic_medication: takesMedication })
