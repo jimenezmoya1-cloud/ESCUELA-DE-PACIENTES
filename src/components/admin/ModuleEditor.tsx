@@ -14,6 +14,7 @@ export default function ModuleEditor({
 }) {
   const isNew = !module
   const [title, setTitle] = useState(module?.title ?? "")
+  const [componentKey, setComponentKey] = useState(module?.component_key ?? "")
   const [shortDescription, setShortDescription] = useState(module?.short_description ?? "")
   const [longDescription, setLongDescription] = useState(module?.long_description ?? "")
   const [isPublished, setIsPublished] = useState(module?.is_published ?? true)
@@ -42,6 +43,7 @@ export default function ModuleEditor({
           .from("modules")
           .insert({
             title,
+            component_key: componentKey.trim() || null,
             short_description: shortDescription || null,
             long_description: longDescription || null,
             order: nextOrder,
@@ -73,6 +75,7 @@ export default function ModuleEditor({
           .from("modules")
           .update({
             title,
+            component_key: componentKey.trim() || null,
             short_description: shortDescription || null,
             long_description: longDescription || null,
             is_published: isPublished,
@@ -165,6 +168,19 @@ export default function ModuleEditor({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full rounded-lg border border-tertiary/30 px-4 py-2.5 text-neutral focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary/20"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-tertiary">
+              Component Key{" "}
+              <span className="font-normal text-tertiary/60">(identificador único, ej: <code className="text-xs">control_peso</code>)</span>
+            </label>
+            <input
+              type="text"
+              value={componentKey}
+              onChange={(e) => setComponentKey(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+              placeholder="ej: control_peso, el_incendio"
+              className="w-full rounded-lg border border-tertiary/30 px-4 py-2.5 font-mono text-sm text-neutral focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary/20"
             />
           </div>
           <div>
