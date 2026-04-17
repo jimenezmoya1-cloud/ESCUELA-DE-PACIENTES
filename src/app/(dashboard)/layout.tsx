@@ -26,23 +26,31 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
-  // Si es admin, redirigir al panel de admin
   if (profile.role === "admin") {
     redirect("/admin")
   }
 
-  // Contar mensajes sin leer
-  const { count: unreadCount } = await supabase
-    .from("messages")
-    .select("*", { count: "exact", head: true })
-    .eq("to_user_id", user.id)
-    .is("read_at", null)
+  const [{ data: completions }, { data: publishedModules }] = await Promise.all([
+    supabase.from("module_completions").select("module_id").eq("user_id", user.id),
+    supabase.from("modules").select("component_key").eq("is_published", true),
+  ])
+
+  const modulesCompleted = completions?.length ?? 0
+  const totalRouteModules = (publishedModules ?? []).filter((m) => {
+    if (m.component_key === "adherencia") return profile.takes_chronic_medication === true
+    if (m.component_key === "salud_sexual") {
+      return profile.gender === "male" && profile.wants_salud_sexual === true
+    }
+    return true
+  }).length
 
   return (
     <DashboardShell
       userName={profile.name}
-      unreadMessages={unreadCount ?? 0}
-      totalPoints={profile.total_points ?? 0}
+      currentStreak={profile.current_streak ?? 0}
+      bestStreak={profile.best_streak ?? 0}
+      modulesCompleted={modulesCompleted}
+      totalRouteModules={totalRouteModules}
     >
       {children}
     </DashboardShell>

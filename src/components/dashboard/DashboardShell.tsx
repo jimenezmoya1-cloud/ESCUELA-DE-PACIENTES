@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { StreakCounter } from "./StreakCounter"
 
 const navItems = [
   {
@@ -47,13 +48,17 @@ const navItems = [
 
 export default function DashboardShell({
   userName,
-  unreadMessages, // Keep prop to avoid breaking other files relying on this interface although unused now
-  totalPoints = 0,
+  currentStreak,
+  bestStreak,
+  modulesCompleted,
+  totalRouteModules,
   children,
 }: {
   userName: string
-  unreadMessages: number
-  totalPoints?: number
+  currentStreak: number
+  bestStreak: number
+  modulesCompleted: number
+  totalRouteModules: number
   children: React.ReactNode
 }) {
   const pathname = usePathname()
@@ -82,16 +87,12 @@ export default function DashboardShell({
 
           {/* Saludo + acciones */}
           <div className="flex items-center gap-4">
-            {/* Badge de puntos */}
-            <Link
-              href="/recompensas"
-              className="flex items-center gap-1.5 rounded-full bg-yellow-50 px-3 py-1.5 text-sm font-bold text-yellow-700 transition-colors hover:bg-yellow-100"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 48 48" fill="none">
-                <path d="M24 4l6 14h14l-11 9 4 15-13-9-13 9 4-15L4 18h14z" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {totalPoints}
-            </Link>
+            <StreakCounter
+              currentStreak={currentStreak}
+              bestStreak={bestStreak}
+              modulesCompleted={modulesCompleted}
+              totalRouteModules={totalRouteModules}
+            />
             <span className="hidden text-sm text-tertiary sm:block">
               Hola, <span className="font-medium text-[#212B52]">{(userName || "Usuario").split(" ")[0]}</span>
             </span>
