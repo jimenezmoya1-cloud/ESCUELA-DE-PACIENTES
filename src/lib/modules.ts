@@ -101,13 +101,6 @@ export function buildPersonalizedRoute(
   const cierre = allModules.find((m) => m.component_key === 'empowerment_cierre')
   if (cierre && !usedIds.has(cierre.id)) {
     route.push(cierre)
-    usedIds.add(cierre.id)
-  }
-
-  // Safety net: any remaining published modules not captured above
-  const remainingModules = allModules.filter((m) => !usedIds.has(m.id))
-  for (const mod of remainingModules) {
-    route.push(mod)
   }
 
   return route
