@@ -1,9 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { StreakCounter } from "./StreakCounter"
+import { BadgeUnlockOverlay } from "./BadgeUnlockOverlay"
+import { BadgeShareModal } from "./BadgeShareModal"
+import type { Achievement } from "@/types/database"
 
 const navItems = [
   {
@@ -47,23 +51,29 @@ const navItems = [
 ]
 
 export default function DashboardShell({
+  userId,
   userName,
   currentStreak,
   bestStreak,
   modulesCompleted,
   totalRouteModules,
+  newlyUnlockedAchievements,
   children,
 }: {
+  userId: string
   userName: string
   currentStreak: number
   bestStreak: number
   modulesCompleted: number
   totalRouteModules: number
+  newlyUnlockedAchievements: Achievement[]
   children: React.ReactNode
 }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const [queue, setQueue] = useState<Achievement[]>(newlyUnlockedAchievements)
+  const [shareBadge, setShareBadge] = useState<Achievement | null>(null)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -139,6 +149,25 @@ export default function DashboardShell({
           <div className="mx-auto max-w-4xl">{children}</div>
         </main>
       </div>
+
+      {queue.length > 0 && (
+        <BadgeUnlockOverlay
+          queue={queue}
+          userId={userId}
+          onShareClick={(a) => setShareBadge(a)}
+          onDone={() => setQueue([])}
+        />
+      )}
+
+      {shareBadge && (
+        <BadgeShareModal
+          achievement={shareBadge}
+          userId={userId}
+          userName={userName}
+          unlockedAt={new Date().toISOString()}
+          onClose={() => setShareBadge(null)}
+        />
+      )}
 
       {/* Bottom nav mobile */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-tertiary/10 bg-white lg:hidden">
