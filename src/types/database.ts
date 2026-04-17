@@ -275,8 +275,13 @@ export interface AppConfig {
 }
 
 // Sistema de Recompensas
-export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond'
-export type AchievementCategory = 'modules' | 'quizzes' | 'tasks' | 'streaks' | 'special'
+export type AchievementCategory = 'module' | 'special' | 'streak'
+export type AchievementRequirementType =
+  | 'module_complete'
+  | 'modules_count'
+  | 'streak_days'
+  | 'first_login'
+  | 'all_modules'
 
 export interface Achievement {
   id: string
@@ -285,10 +290,9 @@ export interface Achievement {
   description: string
   category: AchievementCategory
   icon: string
-  points: number
-  requirement_type: string
+  requirement_type: AchievementRequirementType
   requirement_value: number
-  tier: AchievementTier
+  module_key: string | null
   sort_order: number
 }
 
@@ -301,24 +305,9 @@ export interface UserAchievement {
   achievement?: Achievement
 }
 
-export interface PointsLog {
+export interface UserCertificate {
   id: string
   user_id: string
-  points: number
-  reason: string
-  reference_id: string | null
-  created_at: string
-}
-
-export interface UserRewardsProfile {
-  total_points: number
-  current_streak: number
-  best_streak: number
-  modules_completed: number
-  quizzes_completed: number
-  quizzes_perfect: number
-  tasks_submitted: number
-  achievements_unlocked: UserAchievement[]
-  all_achievements: Achievement[]
-  discount_tier: 'none' | '25' | '30'
+  issued_at: string
+  certificate_number: string
 }
