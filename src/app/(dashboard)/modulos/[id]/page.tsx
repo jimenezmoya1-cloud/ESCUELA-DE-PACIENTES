@@ -76,16 +76,6 @@ export default async function ModulePage({
     .eq("user_id", user.id)
     .eq("module_id", id)
 
-  // Obtener envío de tarea existente
-  const { data: taskSubmission } = await supabase
-    .from("task_submissions")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("module_id", id)
-    .order("submitted_at", { ascending: false })
-    .limit(1)
-    .single()
-
   // Get module PDFs
   const { data: modulePdfs } = await supabase
     .from("module_pdfs")
@@ -178,7 +168,6 @@ export default async function ModulePage({
         blocks={(blocks as ContentBlock[]) ?? []}
         isCompleted={!!completion}
         existingQuizResponses={quizResponses ?? []}
-        existingTaskSubmission={taskSubmission ?? null}
         submodules={submodules ?? []}
         submoduleCompletions={submoduleCompletions ?? []}
         modulePdfs={modulePdfs ?? []}

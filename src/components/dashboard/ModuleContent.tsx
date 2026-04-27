@@ -3,17 +3,16 @@
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import type { ContentBlock, QuizResponse, TaskSubmission, QuizContent, QuizQuestion, VideoContent, TextContent, PdfContent, TaskContent, Achievement, Submodule, SubmoduleCompletion, ModulePdf, SectionContent } from "@/types/database"
-import { onModuleComplete, onQuizComplete, onTaskSubmit } from "@/lib/rewards-actions"
-import CelebrationAnimation from "@/components/rewards/CelebrationAnimation"
-import { AchievementUnlockToast } from "@/components/rewards/AchievementBadge"
+import type { ContentBlock, QuizResponse, QuizContent, QuizQuestion, VideoContent, TextContent, PdfContent, Achievement, Submodule, SubmoduleCompletion, ModulePdf, SectionContent } from "@/types/database"
+import { onModuleComplete } from "@/lib/rewards-actions"
+import { BadgeUnlockOverlay } from "./BadgeUnlockOverlay"
+import { BadgeShareModal } from "./BadgeShareModal"
 
 export default function ModuleContent({
   moduleId,
   blocks,
   isCompleted: initialCompleted,
   existingQuizResponses,
-  existingTaskSubmission,
   submodules = [],
   submoduleCompletions = [],
   modulePdfs = [],
@@ -22,21 +21,24 @@ export default function ModuleContent({
   blocks: ContentBlock[]
   isCompleted: boolean
   existingQuizResponses: QuizResponse[]
-  existingTaskSubmission: TaskSubmission | null
   submodules?: Submodule[]
   submoduleCompletions?: SubmoduleCompletion[]
   modulePdfs?: ModulePdf[]
 }) {
   const [isCompleted, setIsCompleted] = useState(initialCompleted)
   const [completing, setCompleting] = useState(false)
-  const [showCelebration, setShowCelebration] = useState(false)
-  const [newAchievement, setNewAchievement] = useState<Achievement | null>(null)
+  const [unlockQueue, setUnlockQueue] = useState<Achievement[]>([])
+  const [shareBadge, setShareBadge] = useState<Achievement | null>(null)
+  const [userId, setUserId] = useState<string>("")
+  const [userName, setUserName] = useState<string>("")
   const [completedSubIds, setCompletedSubIds] = useState<Set<string>>(
     new Set(submoduleCompletions.map((c) => c.submodule_id))
   )
   const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
+
+  const visibleBlocks = blocks.filter((b) => b.type !== "task")
 
   const totalSections = submodules.length
   const completedSections = submodules.filter((s) => completedSubIds.has(s.id)).length
@@ -47,17 +49,20 @@ export default function ModuleContent({
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    await supabase.from("module_completions").insert({
-      user_id: user.id,
-      module_id: moduleId,
-    })
+    const { data: profile } = await supabase.from("users").select("name").eq("id", user.id).single()
+    setUserId(user.id)
+    setUserName(profile?.name ?? "")
 
-    await onModuleComplete(user.id, moduleId)
+    const newly = await onModuleComplete(user.id, moduleId)
 
     setIsCompleted(true)
     setCompleting(false)
-    setShowCelebration(true)
-    router.refresh()
+
+    if (newly.length > 0) {
+      setUnlockQueue(newly)
+    } else {
+      router.refresh()
+    }
   }
 
   async function handleSubmoduleToggle(submoduleId: string) {
@@ -89,11 +94,25 @@ export default function ModuleContent({
 
   return (
     <div className="space-y-8">
-      <CelebrationAnimation show={showCelebration} onComplete={() => setShowCelebration(false)} />
-      {newAchievement && (
-        <AchievementUnlockToast
-          achievement={newAchievement}
-          onClose={() => setNewAchievement(null)}
+      {unlockQueue.length > 0 && userId && (
+        <BadgeUnlockOverlay
+          queue={unlockQueue}
+          userId={userId}
+          onShareClick={(a) => setShareBadge(a)}
+          onDone={() => {
+            setUnlockQueue([])
+            router.refresh()
+          }}
+        />
+      )}
+
+      {shareBadge && (
+        <BadgeShareModal
+          achievement={shareBadge}
+          userId={userId}
+          userName={userName}
+          unlockedAt={new Date().toISOString()}
+          onClose={() => setShareBadge(null)}
         />
       )}
 
@@ -137,18 +156,14 @@ export default function ModuleContent({
                         : "border-gray-200 bg-white hover:border-[#1E8DCE]/30 hover:shadow-md"
                   }`}
                 >
-                  {/* Card header - always visible */}
                   <button
                     onClick={() => setExpandedSectionId(isExpanded ? null : sub.id)}
                     className="w-full p-4 text-left"
                   >
                     <div className="flex items-start gap-3">
-                      {/* Completion indicator */}
                       <div
                         className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
-                          isDone
-                            ? "border-[#58AE33] bg-[#58AE33]"
-                            : "border-gray-300"
+                          isDone ? "border-[#58AE33] bg-[#58AE33]" : "border-gray-300"
                         }`}
                       >
                         {isDone ? (
@@ -179,7 +194,6 @@ export default function ModuleContent({
                         )}
                       </div>
 
-                      {/* Expand/collapse icon */}
                       <svg
                         className={`h-5 w-5 shrink-0 text-tertiary/40 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                         fill="none"
@@ -191,17 +205,14 @@ export default function ModuleContent({
                     </div>
                   </button>
 
-                  {/* Expanded content */}
                   {isExpanded && sectionContent && (
                     <div className="border-t border-gray-100 p-4 space-y-4">
-                      {/* Text content */}
                       {sectionContent.text && (
                         <div className="prose prose-sm prose-neutral max-w-none">
                           <p className="whitespace-pre-wrap text-sm text-neutral/80">{sectionContent.text}</p>
                         </div>
                       )}
 
-                      {/* Video content */}
                       {sectionContent.video_url && (
                         <div className="overflow-hidden rounded-xl">
                           <div className="relative aspect-video w-full">
@@ -217,7 +228,6 @@ export default function ModuleContent({
                         </div>
                       )}
 
-                      {/* HTML content */}
                       {sectionContent.html && (
                         <div
                           className="prose prose-sm prose-neutral max-w-none prose-headings:text-[#212B52]"
@@ -225,7 +235,6 @@ export default function ModuleContent({
                         />
                       )}
 
-                      {/* Mark as complete button */}
                       <div className="pt-2">
                         <button
                           onClick={(e) => { e.stopPropagation(); handleSubmoduleToggle(sub.id) }}
@@ -241,7 +250,6 @@ export default function ModuleContent({
                     </div>
                   )}
 
-                  {/* Non-expanded: mark complete button */}
                   {!isExpanded && (
                     <div className="px-4 pb-4">
                       <button
@@ -263,14 +271,13 @@ export default function ModuleContent({
         </div>
       )}
 
-      {/* Content blocks */}
-      {blocks.map((block) => (
+      {/* Content blocks (task blocks filtered out) */}
+      {visibleBlocks.map((block) => (
         <ContentBlockRenderer
           key={block.id}
           block={block}
           moduleId={moduleId}
           existingQuizResponses={existingQuizResponses}
-          existingTaskSubmission={existingTaskSubmission}
         />
       ))}
 
@@ -317,7 +324,7 @@ export default function ModuleContent({
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span className="font-medium">Módulo completado — +100 puntos</span>
+            <span className="font-medium">Módulo completado</span>
           </div>
         ) : (
           <button
@@ -347,12 +354,10 @@ function ContentBlockRenderer({
   block,
   moduleId,
   existingQuizResponses,
-  existingTaskSubmission,
 }: {
   block: ContentBlock
   moduleId: string
   existingQuizResponses: QuizResponse[]
-  existingTaskSubmission: TaskSubmission | null
 }) {
   switch (block.type) {
     case "video":
@@ -367,14 +372,6 @@ function ContentBlockRenderer({
           content={block.content as unknown as QuizContent}
           moduleId={moduleId}
           existingResponses={existingQuizResponses}
-        />
-      )
-    case "task":
-      return (
-        <TaskBlock
-          content={block.content as unknown as TaskContent}
-          moduleId={moduleId}
-          existingSubmission={existingTaskSubmission}
         />
       )
     default:
@@ -486,9 +483,6 @@ function QuizBlock({
     setResults(newResults)
     setSubmitted(true)
     setSubmitting(false)
-
-    const allCorrect = Object.values(newResults).every(Boolean)
-    await onQuizComplete(user.id, moduleId, allCorrect)
   }
 
   const totalQuestions = content.questions.length
@@ -619,80 +613,6 @@ function QuestionItem({
           )
         })}
       </div>
-    </div>
-  )
-}
-
-function TaskBlock({
-  content,
-  moduleId,
-  existingSubmission,
-}: {
-  content: TaskContent
-  moduleId: string
-  existingSubmission: TaskSubmission | null
-}) {
-  const [text, setText] = useState(existingSubmission?.content ?? "")
-  const [submitted, setSubmitted] = useState(!!existingSubmission)
-  const [submitting, setSubmitting] = useState(false)
-  const supabase = createClient()
-
-  async function handleSubmit() {
-    if (!text.trim()) return
-    setSubmitting(true)
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    await supabase.from("task_submissions").insert({
-      user_id: user.id,
-      module_id: moduleId,
-      content: text.trim(),
-    })
-
-    await onTaskSubmit(user.id, moduleId)
-
-    setSubmitted(true)
-    setSubmitting(false)
-  }
-
-  return (
-    <div className="rounded-xl bg-white p-6 shadow-sm lg:p-8">
-      <h3 className="mb-2 text-lg font-semibold text-[#212B52]">
-        {content.title || "Tarea"}
-      </h3>
-      {content.instructions && (
-        <p className="mb-4 text-sm text-tertiary">{content.instructions}</p>
-      )}
-
-      {submitted ? (
-        <div className="rounded-lg bg-[#58AE33]/5 border border-[#58AE33]/20 p-4">
-          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-[#58AE33]">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            Tarea enviada
-          </div>
-          <p className="whitespace-pre-wrap text-sm text-neutral/70">{text}</p>
-        </div>
-      ) : (
-        <>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={6}
-            placeholder="Escriba su respuesta aquí..."
-            className="w-full rounded-lg border border-tertiary/30 px-4 py-3 text-neutral placeholder:text-tertiary/50 focus:border-[#1E8DCE] focus:outline-none focus:ring-2 focus:ring-[#1E8DCE]/20"
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={submitting || !text.trim()}
-            className="mt-3 rounded-lg bg-[#1E8DCE] px-6 py-2.5 font-medium text-white transition-colors hover:bg-[#1E8DCE]/90 disabled:opacity-50"
-          >
-            {submitting ? "Enviando..." : "Enviar tarea"}
-          </button>
-        </>
-      )}
     </div>
   )
 }
