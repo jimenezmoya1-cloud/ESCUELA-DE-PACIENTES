@@ -110,11 +110,12 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ us
   })
 
   const stream = await renderToStream(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     React.createElement(CertificatePdf, {
       name: userRow?.name ?? "Paciente",
       certNumber: cert.certificate_number,
       date: dateStr,
-    })
+    }) as any
   )
 
   return new Response(stream as unknown as ReadableStream, {

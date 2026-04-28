@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import PatientReportView from "@/components/dashboard/clinical/PatientReportView"
+import PatientReportView from "@/components/dashboard/clinical/PatientReportViewLoader"
 import type { PatientAssessment, PatientClinicalProfile } from "@/types/database"
 
 export default async function MiHistoriaClinicaPage() {
