@@ -311,3 +311,64 @@ export interface UserCertificate {
   issued_at: string
   certificate_number: string
 }
+
+export interface PatientClinicalProfile {
+  user_id: string
+  primer_nombre: string | null
+  segundo_nombre: string | null
+  primer_apellido: string | null
+  segundo_apellido: string | null
+  tipo_documento: string | null
+  documento: string | null
+  fecha_nacimiento: string | null
+  sexo: string | null
+  genero: string | null
+  telefono: string | null
+  correo: string | null
+  regimen_afiliacion: string | null
+  aseguradora: string | null
+  prepagada: string | null
+  plan_complementario: string | null
+  pais_nacimiento: string | null
+  pais_residencia: string | null
+  departamento_residencia: string | null
+  municipio_residencia: string | null
+  direccion_residencia: string | null
+  contacto_emergencia_nombre: string | null
+  contacto_emergencia_parentesco: string | null
+  contacto_emergencia_telefono: string | null
+  updated_at: string
+}
+
+export interface AssessmentComponent {
+  nombre: string
+  valor: number | string
+  puntaje: number
+}
+
+export interface AssessmentAlert {
+  id: number
+  marcador: string
+  accion: string
+}
+
+export type AssessmentNivel = 'Verde' | 'Amarillo' | 'Rojo'
+
+export interface PatientAssessment {
+  id: string
+  user_id: string
+  created_by: string
+  created_at: string
+  components: AssessmentComponent[]
+  is_sca: boolean
+  is_dm2: boolean
+  is_pluripatologico: boolean
+  is_poca_expectativa: boolean
+  score_global: number
+  meta_score: number
+  nivel: AssessmentNivel
+  alertas_criticas: AssessmentAlert[]
+  alertas_orientadoras: AssessmentAlert[]
+  raw_questionnaire: unknown
+  notes: string | null
+}
