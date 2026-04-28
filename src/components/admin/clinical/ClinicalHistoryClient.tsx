@@ -20,12 +20,6 @@ interface Props {
   initialMode?: "view" | "edit"
 }
 
-declare global {
-  interface Window {
-    html2canvas?: (el: HTMLElement, opts?: Record<string, unknown>) => Promise<HTMLCanvasElement>
-    jspdf?: { jsPDF: new (orient: string, unit: string, format: string) => unknown }
-  }
-}
 
 export default function ClinicalHistoryClient({
   userId,
@@ -112,25 +106,6 @@ export default function ClinicalHistoryClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSCA, isDM2, isPluripatologico, isPocaExpectativa, edadCalculada, valoresKey])
 
-  useEffect(() => {
-    const loadScript = (src: string) =>
-      new Promise<void>((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) {
-          resolve()
-          return
-        }
-        const script = document.createElement("script")
-        script.src = src
-        script.async = true
-        script.onload = () => resolve()
-        script.onerror = (err) => reject(err)
-        document.body.appendChild(script)
-      })
-    Promise.all([
-      loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"),
-      loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"),
-    ]).catch((err) => console.error("Error cargando librerías de PDF", err))
-  }, [])
 
   const handleScoreChange = (nombre: string, nuevoValor: string) => {
     setComponentes((prev) => prev.map((c) => (c.nombre === nombre ? { ...c, valor: nuevoValor } : c)))
@@ -146,25 +121,21 @@ export default function ClinicalHistoryClient({
     setAlertas((prev) => ({ ...prev, [tipo]: prev[tipo].map((a) => (a.id === id ? { ...a, accion: valor } : a)) }))
 
   const handleSavePDF = async () => {
-    if (!window.html2canvas || !window.jspdf) return
     setIsGenerando(true)
     await new Promise((r) => setTimeout(r, 150))
     try {
-      const { jsPDF } = window.jspdf as { jsPDF: new (o: string, u: string, f: string) => unknown }
-      const pdf = new jsPDF("p", "mm", "a4") as {
-        internal: { pageSize: { getWidth: () => number } }
-        addPage: () => void
-        addImage: (data: string, fmt: string, x: number, y: number, w: number, h: number) => void
-        getImageProperties: (d: string) => { width: number; height: number }
-        save: (name: string) => void
-      }
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas-pro"),
+        import("jspdf"),
+      ])
+      const pdf = new jsPDF("p", "mm", "a4")
       const pdfWidth = pdf.internal.pageSize.getWidth()
       const refs = [page1Ref, page2Ref, page3Ref]
       let firstPage = true
       for (const ref of refs) {
         if (ref.current) {
           if (!firstPage) pdf.addPage()
-          const canvas = await window.html2canvas(ref.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" })
+          const canvas = await html2canvas(ref.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" })
           const imgData = canvas.toDataURL("image/png")
           const imgProps = pdf.getImageProperties(imgData)
           const imgHeight = (imgProps.height * pdfWidth) / imgProps.width
