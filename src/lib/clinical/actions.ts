@@ -108,6 +108,42 @@ export async function upsertClinicalProfile(
   revalidatePath(`/admin/pacientes/${userId}/historia-clinica`)
 }
 
+export async function getAssessmentsByDateRange(
+  userId: string,
+  startDate?: string,
+  endDate?: string,
+): Promise<
+  Array<
+    PatientAssessment & {
+      delta_score: number | null
+      delta_nivel: "mejoro" | "empeoro" | "igual" | null
+    }
+  >
+> {
+  const supabase = await createClient()
+
+  let query = supabase
+    .from("patient_assessments")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+
+  if (startDate) query = query.gte("created_at", startDate)
+  if (endDate) query = query.lte("created_at", endDate)
+
+  const { data, error } = await query
+  if (error || !data) throw new Error(`fetch failed: ${error?.message ?? "unknown"}`)
+
+  const assessments = data as PatientAssessment[]
+  return assessments.map((assessment, index) => {
+    const prev = assessments[index + 1]
+    const delta_score = prev ? assessment.score_global - prev.score_global : null
+    const delta_nivel =
+      delta_score === null ? null : delta_score > 0 ? "mejoro" : delta_score < 0 ? "empeoro" : "igual"
+    return { ...assessment, delta_score, delta_nivel }
+  })
+}
+
 export async function getAssessmentTimeline(
   userId: string,
 ): Promise<Array<Pick<PatientAssessment, "id" | "created_at" | "score_global" | "nivel">>> {

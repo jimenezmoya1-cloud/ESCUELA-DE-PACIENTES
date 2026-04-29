@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { Download } from "lucide-react"
+import { useRef, useState } from "react"
+import { Download, ArrowLeft } from "lucide-react"
 import ReportPage1 from "@/components/admin/clinical/ReportPage1"
 import ReportPage2 from "@/components/admin/clinical/ReportPage2"
 import ReportPage3 from "@/components/admin/clinical/ReportPage3"
@@ -14,10 +14,10 @@ interface Props {
   assessment: PatientAssessment
   profile: PatientClinicalProfile | null
   evaluacionInicialScore: number | null
+  showBackToList?: boolean
 }
 
-
-export default function PatientReportView({ assessment, profile, evaluacionInicialScore }: Props) {
+export default function PatientReportView({ assessment, profile, evaluacionInicialScore, showBackToList = false }: Props) {
   const page1Ref = useRef<HTMLDivElement>(null)
   const page2Ref = useRef<HTMLDivElement>(null)
   const page3Ref = useRef<HTMLDivElement>(null)
@@ -86,7 +86,17 @@ export default function PatientReportView({ assessment, profile, evaluacionInici
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-50 p-4 md:p-8 font-sans text-slate-800 flex flex-col items-center">
-      <div className="w-full max-w-[1000px] mb-6 flex justify-end print:hidden">
+      <div className="w-full max-w-[1000px] mb-6 flex items-center justify-between print:hidden">
+        {showBackToList ? (
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center gap-1 text-sm text-tertiary hover:text-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" /> Volver a la lista
+          </button>
+        ) : (
+          <span />
+        )}
         <button
           onClick={handleSavePDF}
           disabled={isGenerando}

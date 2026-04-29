@@ -9,7 +9,19 @@ import { BadgeUnlockOverlay } from "./BadgeUnlockOverlay"
 import { BadgeShareModal } from "./BadgeShareModal"
 import type { Achievement } from "@/types/database"
 
-const navItems = [
+const evaluacionItems = [
+  {
+    href: "/mi-historia-clinica",
+    label: "Mi Evaluación",
+    icon: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    ),
+  },
+]
+
+const escuelaItems = [
   {
     href: "/mi-camino",
     label: "Mi Camino",
@@ -40,15 +52,6 @@ const navItems = [
     ),
   },
   {
-    href: "/mi-historia-clinica",
-    label: "Historia clínica",
-    icon: (
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-      </svg>
-    ),
-  },
-  {
     href: "/progreso",
     label: "Mi Progreso",
     icon: (
@@ -58,6 +61,25 @@ const navItems = [
     ),
   },
 ]
+
+const allNavItems = [...evaluacionItems, ...escuelaItems]
+
+function NavLink({ item, pathname }: { item: typeof allNavItems[0]; pathname: string }) {
+  const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+  return (
+    <Link
+      href={item.href}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+        isActive
+          ? "bg-[#06559F]/10 text-[#06559F]"
+          : "text-tertiary hover:bg-background hover:text-[#212B52]"
+      }`}
+    >
+      {item.icon}
+      {item.label}
+    </Link>
+  )
+}
 
 export default function DashboardShell({
   userId,
@@ -95,13 +117,13 @@ export default function DashboardShell({
       <header className="sticky top-0 z-30 border-b border-tertiary/10 bg-white shadow-sm">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4">
           {/* Logo */}
-          <Link href="/mi-camino" className="flex items-center gap-3">
+          <Link href="/mi-historia-clinica" className="flex items-center gap-3">
             <img
               src="/logo-medicina-preventiva.png"
-              alt="Logo Medicina Preventiva CAIMED"
+              alt="Logo CAIMED Preventiva"
               className="h-16 w-auto object-contain"
             />
-            <span className="hidden text-xs font-medium text-tertiary sm:block">Escuela de Pacientes</span>
+            <span className="hidden text-xs font-semibold text-[#06559F] sm:block">CAIMED Preventiva App</span>
           </Link>
 
           {/* Saludo + acciones */}
@@ -115,8 +137,6 @@ export default function DashboardShell({
             <span className="hidden text-sm text-tertiary sm:block">
               Hola, <span className="font-medium text-[#212B52]">{(userName || "Usuario").split(" ")[0]}</span>
             </span>
-
-            {/* Cerrar sesión */}
             <button
               onClick={handleLogout}
               className="rounded-lg px-3 py-2 text-sm text-tertiary transition-colors hover:bg-background hover:text-error"
@@ -130,27 +150,36 @@ export default function DashboardShell({
       {/* Contenido principal */}
       <div className="flex flex-1">
         {/* Sidebar desktop */}
-        <nav className="hidden w-56 shrink-0 border-r border-tertiary/10 bg-white p-4 lg:block">
-          <ul className="space-y-1">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
-              return (
+        <nav className="hidden w-60 shrink-0 border-r border-tertiary/10 bg-white p-4 lg:block">
+          {/* Sección Mi Evaluación */}
+          <div className="mb-4">
+            <p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-widest text-[#06559F]">
+              Mi Evaluación
+            </p>
+            <ul className="space-y-0.5">
+              {evaluacionItems.map((item) => (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-[#06559F]/10 text-[#06559F]"
-                        : "text-tertiary hover:bg-background hover:text-[#212B52]"
-                    }`}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </Link>
+                  <NavLink item={item} pathname={pathname} />
                 </li>
-              )
-            })}
-          </ul>
+              ))}
+            </ul>
+          </div>
+
+          <div className="my-3 border-t border-tertiary/10" />
+
+          {/* Sección Escuela de Pacientes */}
+          <div>
+            <p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-widest text-tertiary">
+              Escuela de Pacientes
+            </p>
+            <ul className="space-y-0.5">
+              {escuelaItems.map((item) => (
+                <li key={item.href}>
+                  <NavLink item={item} pathname={pathname} />
+                </li>
+              ))}
+            </ul>
+          </div>
         </nav>
 
         {/* Main content */}
@@ -178,16 +207,16 @@ export default function DashboardShell({
         />
       )}
 
-      {/* Bottom nav mobile */}
+      {/* Bottom nav mobile — Mi Evaluación primero */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-tertiary/10 bg-white lg:hidden">
         <ul className="flex items-center justify-around py-2">
-          {navItems.map((item) => {
+          {allNavItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`relative flex flex-col items-center gap-0.5 px-3 py-1 text-[11px] font-medium ${
+                  className={`relative flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] font-medium ${
                     isActive ? "text-[#06559F]" : "text-tertiary"
                   }`}
                 >

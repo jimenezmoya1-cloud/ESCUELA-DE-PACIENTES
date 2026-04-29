@@ -1,18 +1,27 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import PatientReportView from "@/components/dashboard/clinical/PatientReportViewLoader"
-import type { PatientAssessment, PatientClinicalProfile } from "@/types/database"
+import { getAssessmentsByDateRange } from "@/lib/clinical/actions"
+import type { PatientClinicalProfile } from "@/types/database"
+import type { AssessmentWithDelta } from "@/components/dashboard/clinical/AssessmentListWithDelta"
+import PatientReportsList from "@/components/dashboard/clinical/PatientReportsList"
 
-export default async function MiHistoriaClinicaPage() {
+export default async function MiHistoriaClinicaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ report?: string }>
+}) {
+  const { report } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  const { data: assessments } = await supabase
-    .from("patient_assessments")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
+  let assessments: AssessmentWithDelta[] = []
+  try {
+    assessments = await getAssessmentsByDateRange(user.id)
+  } catch {
+    // tabla puede no existir si la migración no se ha aplicado
+  }
 
   const { data: profile } = await supabase
     .from("patient_clinical_profile")
@@ -20,12 +29,7 @@ export default async function MiHistoriaClinicaPage() {
     .eq("user_id", user.id)
     .maybeSingle()
 
-  const all = (assessments ?? []) as PatientAssessment[]
-  const latest = all[0] ?? null
-  const oldest = all[all.length - 1] ?? null
-  const evaluacionInicialScore = oldest && oldest.id !== latest?.id ? oldest.score_global : null
-
-  if (!latest) {
+  if (assessments.length === 0) {
     return (
       <div className="mx-auto max-w-2xl p-8 text-center">
         <div className="inline-block rounded-full bg-blue-50 p-6 mb-4">
@@ -39,11 +43,32 @@ export default async function MiHistoriaClinicaPage() {
     )
   }
 
+  // Mostrar reporte específico si viene el parámetro ?report=id
+  if (report) {
+    const selected = assessments.find((a) => a.id === report)
+    if (selected) {
+      const oldest = assessments[assessments.length - 1]
+      const evaluacionInicialScore =
+        oldest && oldest.id !== selected.id ? oldest.score_global : null
+      return (
+        <PatientReportView
+          assessment={selected}
+          profile={(profile ?? null) as PatientClinicalProfile | null}
+          evaluacionInicialScore={evaluacionInicialScore}
+          showBackToList={true}
+        />
+      )
+    }
+  }
+
+  // Vista por defecto: lista de todos los reportes
   return (
-    <PatientReportView
-      assessment={latest}
-      profile={(profile ?? null) as PatientClinicalProfile | null}
-      evaluacionInicialScore={evaluacionInicialScore}
-    />
+    <div className="mx-auto max-w-3xl">
+      <h1 className="text-2xl font-bold text-neutral mb-2">Mi Evaluación Clínica</h1>
+      <p className="text-sm text-tertiary mb-6">
+        Toca cualquier evaluación para ver el reporte completo y descargar el PDF.
+      </p>
+      <PatientReportsList assessments={assessments} />
+    </div>
   )
 }

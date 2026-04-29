@@ -320,8 +320,12 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
                  }
                `}</style>
             </div>
-            <div className="w-72 h-72 bg-white/10 rounded-full flex items-center justify-center mb-8 backdrop-blur-sm border border-white/20 relative z-10">
-              <HeartPulse className="w-36 h-36 text-blue-300 animate-pulse" />
+            <div className="relative z-10 mb-8 bg-white rounded-3xl px-10 py-8 shadow-2xl border border-white/30">
+              <img
+                src="/logo-medicina-preventiva.png"
+                alt="CAIMED Preventiva"
+                className="w-80 h-auto object-contain"
+              />
             </div>
             <h1 className="text-4xl font-black text-white tracking-tight relative z-10">¡Bienvenido, Equipo CAIMED!</h1>
             <p className="text-lg font-medium text-blue-200 relative z-10 max-w-2xl">
