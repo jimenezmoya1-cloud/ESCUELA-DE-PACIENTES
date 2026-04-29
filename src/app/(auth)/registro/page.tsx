@@ -42,9 +42,11 @@ export default function RegistroPage() {
           convenioCode: hasConvenio ? convenioCode || null : null,
         }),
       })
-      const data = await res.json()
+      const text = await res.text()
+      let data: { error?: string } = {}
+      try { data = JSON.parse(text) } catch { /* HTML response */ }
       if (!res.ok) {
-        setError(data.error ?? "Error al registrarse.")
+        setError(data.error ?? `Error ${res.status}: no se pudo registrar.`)
         return
       }
 
