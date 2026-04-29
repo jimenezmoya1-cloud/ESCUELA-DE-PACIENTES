@@ -348,7 +348,7 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
             </h2>
             
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-sm text-slate-600 leading-relaxed">
-              "Autorizo de manera libre, expresa e informada a CAIMED S.A.S. para el tratamiento de mis datos personales y datos sensibles relacionados con mi salud, conforme a la Ley 1581 de 2012 y la política de tratamiento de datos, con el fin de realizar el Chequeo Cardiovascular Express, generar un reporte de mis resultados y enviarlos a mi correo electrónico."
+              "Autorizo de manera libre, expresa e informada a CAIMED S.A.S. para el tratamiento de mis datos personales y datos sensibles relacionados con mi salud, conforme a la Ley 1581 de 2012, el Decreto 1377 de 2013 y la Política de Tratamiento de Datos PL-PCG-001 de CAIMED S.A.S., con el fin de realizar el Chequeo Cardiovascular Express, generar un reporte de mis resultados y enviarlos a mi correo electrónico."
               <br/><br/>
               <a href="https://caimed.com/" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">Ver política de tratamiento de datos</a>
             </div>
@@ -395,10 +395,17 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
               <div className="md:col-span-1">
                 <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-2"><CreditCard className="w-4 h-4"/> Tipo Doc *</label>
                 <select value={formData.docType} onChange={e => setFormData({...formData, docType: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
-                  <option value="CC">CC</option>
-                  <option value="CE">CE</option>
-                  <option value="Pasaporte">Pasaporte</option>
-                  <option value="TI">TI</option>
+                  <option value="CC">CC — Cédula de Ciudadanía</option>
+                  <option value="CE">CE — Cédula de Extranjería</option>
+                  <option value="CD">CD — Carné Diplomático</option>
+                  <option value="PA">PA — Pasaporte</option>
+                  <option value="SC">SC — Salvo Conducto</option>
+                  <option value="PE">PE — Permiso Especial de Permanencia</option>
+                  <option value="RC">RC — Registro Civil</option>
+                  <option value="TI">TI — Tarjeta de Identidad</option>
+                  <option value="CN">CN — Certificado de Nacido Vivo</option>
+                  <option value="AS">AS — Adulto sin identificación</option>
+                  <option value="MS">MS — Menor sin identificación</option>
                 </select>
               </div>
               <div className="md:col-span-2">
@@ -423,17 +430,15 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Sexo *</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="gender" value="Masculino" checked={formData.gender === 'Masculino'} onChange={e => setFormData({...formData, gender: e.target.value})} className="w-4 h-4 text-blue-600" />
-                    <span>Masculino</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="gender" value="Femenino" checked={formData.gender === 'Femenino'} onChange={e => setFormData({...formData, gender: e.target.value})} className="w-4 h-4 text-blue-600" />
-                    <span>Femenino</span>
-                  </label>
-                </div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Género *</label>
+                <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
+                  <option value="">Seleccione...</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
+                  <option value="No binario">No binario</option>
+                  <option value="Prefiere no informar">Prefiere no informar</option>
+                  <option value="Otro">Otro</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">País de Nacimiento *</label>
@@ -510,41 +515,65 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
                   <label className="block text-sm font-bold text-slate-700 mb-1">Régimen de Afiliación *</label>
                   <select value={formData.affiliation} onChange={e => setFormData({...formData, affiliation: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
                     <option value="">Seleccione...</option>
-                    <option value="Contributivo">Contributivo</option>
-                    <option value="Subsidiado">Subsidiado</option>
-                    <option value="Especial">Especial</option>
-                    <option value="Excepción">Excepción</option>
-                    <option value="No asegurado">No asegurado</option>
+                    <option value="01 - Contributivo">01 - Contributivo</option>
+                    <option value="02 - Subsidiado">02 - Subsidiado</option>
+                    <option value="03 - Vinculado">03 - Vinculado</option>
+                    <option value="04 - Particular">04 - Particular</option>
+                    <option value="05 - Excepción (Fuerzas Militares)">05 - Excepción (Fuerzas Militares)</option>
+                    <option value="06 - Excepción (Policía Nacional)">06 - Excepción (Policía Nacional)</option>
+                    <option value="07 - Excepción (Magisterio - FOMAG)">07 - Excepción (Magisterio - FOMAG)</option>
+                    <option value="08 - Excepción (ECOPETROL)">08 - Excepción (ECOPETROL)</option>
+                    <option value="09 - Excepción (Universidades Públicas)">09 - Excepción (Universidades Públicas)</option>
+                    <option value="10 - Especial (Congreso)">10 - Especial (Congreso)</option>
+                    <option value="11 - Especial (Banco de la República)">11 - Especial (Banco de la República)</option>
+                    <option value="12 - Especial (DIAN)">12 - Especial (DIAN)</option>
+                    <option value="13 - Especial (Magistratura)">13 - Especial (Magistratura)</option>
+                    <option value="14 - Especial (CTI)">14 - Especial (CTI)</option>
+                    <option value="15 - Especial (INPEC)">15 - Especial (INPEC)</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1">Aseguradora (EPS) *</label>
                   <select value={formData.eps} onChange={e => setFormData({...formData, eps: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
                     <option value="">Seleccione...</option>
-                    <option value="Aliansalud EPS">Aliansalud EPS</option>
-                    <option value="Asmet Salud">Asmet Salud</option>
-                    <option value="Cajacopi EPS">Cajacopi EPS</option>
-                    <option value="Capital Salud">Capital Salud</option>
-                    <option value="Capresoca">Capresoca</option>
-                    <option value="Comfachoco">Comfachoco</option>
-                    <option value="Comfaguajira">Comfaguajira</option>
-                    <option value="Comfaoriente">Comfaoriente</option>
-                    <option value="Comfasucre">Comfasucre</option>
-                    <option value="Compensar EPS">Compensar EPS</option>
-                    <option value="Coomeva EPS">Coomeva EPS</option>
-                    <option value="Dusakawi">Dusakawi</option>
-                    <option value="Ecoopsos">Ecoopsos</option>
-                    <option value="Emssanar">Emssanar</option>
-                    <option value="EPS Sanitas">EPS Sanitas</option>
-                    <option value="EPS Sura">EPS Sura</option>
-                    <option value="Famisanar">Famisanar</option>
-                    <option value="Mallamas">Mallamas</option>
-                    <option value="Mutual Ser">Mutual Ser</option>
-                    <option value="Nueva EPS">Nueva EPS</option>
-                    <option value="Pijaos Salud">Pijaos Salud</option>
-                    <option value="Salud Total EPS">Salud Total EPS</option>
-                    <option value="Savia Salud">Savia Salud</option>
-                    <option value="SOS EPS">SOS EPS</option>
+                    <optgroup label="Régimen Contributivo">
+                      <option value="Aliansalud EPS">Aliansalud EPS</option>
+                      <option value="Compensar EPS">Compensar EPS</option>
+                      <option value="Coosalud EPS">Coosalud EPS</option>
+                      <option value="EPS Sanitas">EPS Sanitas</option>
+                      <option value="EPS Sura">EPS Sura</option>
+                      <option value="Famisanar">Famisanar</option>
+                      <option value="Nueva EPS">Nueva EPS</option>
+                      <option value="Salud Total EPS">Salud Total EPS</option>
+                      <option value="SOS EPS">SOS EPS</option>
+                    </optgroup>
+                    <optgroup label="Régimen Subsidiado">
+                      <option value="Asmet Salud">Asmet Salud</option>
+                      <option value="Cajacopi EPS">Cajacopi EPS</option>
+                      <option value="Capital Salud">Capital Salud</option>
+                      <option value="Capresoca EPS">Capresoca EPS</option>
+                      <option value="Comfachoco">Comfachoco</option>
+                      <option value="Comfaguajira">Comfaguajira</option>
+                      <option value="Comfaoriente">Comfaoriente</option>
+                      <option value="Comfasucre">Comfasucre</option>
+                      <option value="Coosalud EPS (Subsidiado)">Coosalud EPS (Subsidiado)</option>
+                      <option value="Dusakawi">Dusakawi</option>
+                      <option value="Ecoopsos">Ecoopsos</option>
+                      <option value="Emssanar">Emssanar</option>
+                      <option value="Mallamas">Mallamas</option>
+                      <option value="Mutual Ser">Mutual Ser</option>
+                      <option value="Pijaos Salud">Pijaos Salud</option>
+                      <option value="Savia Salud">Savia Salud</option>
+                    </optgroup>
+                    <optgroup label="Excepción / Especial">
+                      <option value="FFMM (Fuerzas Militares)">FFMM (Fuerzas Militares)</option>
+                      <option value="Policía Nacional">Policía Nacional</option>
+                      <option value="Magisterio (FOMAG)">Magisterio (FOMAG)</option>
+                      <option value="ECOPETROL">ECOPETROL</option>
+                      <option value="Universidad Pública">Universidad Pública</option>
+                      <option value="INPEC">INPEC</option>
+                    </optgroup>
+                    <option value="No asegurado">No asegurado</option>
                     <option value="Otra">Otra</option>
                   </select>
                 </div>
@@ -611,9 +640,9 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
                     {[
                       { val: 1, label: 'Muy en desacuerdo' },
                       { val: 2, label: 'En desacuerdo' },
-                      { val: 3, label: 'Más bien en desacuerdo' },
+                      { val: 3, label: 'Algo en desacuerdo' },
                       { val: 4, label: 'Ni de acuerdo ni en desacuerdo' },
-                      { val: 5, label: 'Más bien de acuerdo' },
+                      { val: 5, label: 'Algo de acuerdo' },
                       { val: 6, label: 'De acuerdo' },
                       { val: 7, label: 'Muy de acuerdo' }
                     ].map(opt => (
@@ -666,12 +695,13 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
               {hesQuestions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                     {[
-                      { val: 1, label: 'Muy difícil' },
-                      { val: 2, label: 'Difícil' },
-                      { val: 3, label: 'Fácil' },
-                      { val: 4, label: 'Muy fácil' }
+                      { val: 1, label: 'Fuertemente en desacuerdo' },
+                      { val: 2, label: 'En desacuerdo' },
+                      { val: 3, label: 'Ni de acuerdo ni en desacuerdo' },
+                      { val: 4, label: 'De acuerdo' },
+                      { val: 5, label: 'Fuertemente de acuerdo' }
                     ].map(opt => (
                       <label 
                         key={opt.val} 
@@ -907,10 +937,10 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                      { val: 1, label: 'a. Nunca' },
-                      { val: 2, label: 'b. Algunas veces' },
-                      { val: 3, label: 'c. Casi siempre' },
-                      { val: 4, label: 'd. Siempre' }
+                      { val: 1, label: 'Nunca' },
+                      { val: 2, label: 'Algunas veces' },
+                      { val: 3, label: 'Casi siempre' },
+                      { val: 4, label: 'Siempre' }
                     ].map(opt => (
                       <label 
                         key={opt.val} 

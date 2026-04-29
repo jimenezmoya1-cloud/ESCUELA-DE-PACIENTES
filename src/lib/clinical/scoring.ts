@@ -23,7 +23,7 @@ export const calcularPuntajeExacto = (
 
   switch (nombreComponente) {
     case 'Empoderamiento':
-      return reglaDeTresRango(valor, 8, 32, 0, 100)
+      return reglaDeTresRango(valor, 8, 40, 0, 100)
 
     case 'Adherencia a medicamentos':
       if (valor <= 23) return reglaDeTresRango(valor, 12, 23, 100, 80)
