@@ -38,24 +38,82 @@ const getCaimedMessage = (step: number) => {
 
 interface QuestionnaireProps {
   onComplete: (url: string) => void;
+  existingProfile?: ExistingProfile | null;
+  skipPersonalData?: boolean;
+  editMode?: boolean;
 }
 
-export default function Questionnaire({ onComplete }: QuestionnaireProps) {
-  const [step, setStep] = useState(0);
+export interface ExistingProfile {
+  primer_nombre: string | null;
+  segundo_nombre: string | null;
+  primer_apellido: string | null;
+  segundo_apellido: string | null;
+  tipo_documento: string | null;
+  documento: string | null;
+  fecha_nacimiento: string | null;
+  sexo: string | null;
+  telefono: string | null;
+  correo: string | null;
+  regimen_afiliacion: string | null;
+  aseguradora: string | null;
+  prepagada: string | null;
+  plan_complementario: string | null;
+  pais_nacimiento: string | null;
+  pais_residencia: string | null;
+  departamento_residencia: string | null;
+  municipio_residencia: string | null;
+  direccion_residencia: string | null;
+  contacto_emergencia_nombre: string | null;
+  contacto_emergencia_parentesco: string | null;
+  contacto_emergencia_telefono: string | null;
+}
+
+export default function Questionnaire({ onComplete, existingProfile, skipPersonalData, editMode }: QuestionnaireProps) {
+  const [step, setStep] = useState(editMode ? 3 : 1);
   const totalSteps = 18;
   const [isTermsOpen, setIsTermsOpen] = useState(false);
-  const [password, setPassword] = useState('');
-  const [passwordError, setPasswordError] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (editMode) return;
     if (step > 0 && step <= totalSteps) {
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       setToastMsg(getCaimedMessage(step));
       toastTimeoutRef.current = setTimeout(() => setToastMsg(''), 6000);
     }
-  }, [step]);
+  }, [step, editMode]);
+
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (prefilledRef.current || !existingProfile) return;
+    prefilledRef.current = true;
+    setFormData(prev => ({
+      ...prev,
+      firstName: existingProfile.primer_nombre ?? '',
+      secondName: existingProfile.segundo_nombre ?? '',
+      firstLastName: existingProfile.primer_apellido ?? '',
+      secondLastName: existingProfile.segundo_apellido ?? '',
+      docType: existingProfile.tipo_documento ?? prev.docType,
+      docNumber: existingProfile.documento ?? '',
+      dob: existingProfile.fecha_nacimiento ?? '',
+      phone: existingProfile.telefono ?? '',
+      email: existingProfile.correo ?? '',
+      gender: existingProfile.sexo ?? '',
+      birthCountry: existingProfile.pais_nacimiento ?? prev.birthCountry,
+      residenceCountry: existingProfile.pais_residencia ?? prev.residenceCountry,
+      residenceDept: existingProfile.departamento_residencia ?? '',
+      residenceMun: existingProfile.municipio_residencia ?? '',
+      address: existingProfile.direccion_residencia ?? '',
+      emergencyName: existingProfile.contacto_emergencia_nombre ?? '',
+      emergencyRelation: existingProfile.contacto_emergencia_parentesco ?? '',
+      emergencyPhone: existingProfile.contacto_emergencia_telefono ?? '',
+      affiliation: existingProfile.regimen_afiliacion ?? '',
+      eps: existingProfile.aseguradora ?? '',
+      prepaid: existingProfile.prepagada ?? '',
+      complementary: existingProfile.plan_complementario ?? '',
+    }));
+  }, [existingProfile]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -127,13 +185,8 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
   const [generatedUrl, setGeneratedUrl] = useState('');
 
   const handleNext = () => {
-    if (step === 0) {
-      if (password === 'CAIMEDCARDIOPREVENTIVA2026*') {
-        setPasswordError(false);
-        setStep(1);
-      } else {
-        setPasswordError(true);
-      }
+    if (step === 2 && skipPersonalData) {
+      setStep(4);
     } else if (step === 7 && formData.takesMeds === false) {
       setStep(10);
     } else if (step === 12 && formData.gender !== 'Masculino') {
@@ -146,13 +199,15 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
   };
 
   const handlePrev = () => {
-    if (step === 10 && formData.takesMeds === false) {
+    if (step === 4 && skipPersonalData) {
+      setStep(2);
+    } else if (step === 10 && formData.takesMeds === false) {
       setStep(7);
     } else if (step === 14 && formData.gender !== 'Masculino') {
       setStep(12);
     } else if (step === 16 && formData.smoked === false) {
       setStep(14);
-    } else if (step > 0) {
+    } else if (step > 1) {
       setStep(s => s - 1);
     }
   };
@@ -208,7 +263,23 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
     const params = new URLSearchParams({
       nombre,
       doc,
+      tipo_doc: formData.docType,
       fecha_nac,
+      sexo: formData.gender,
+      telefono: formData.phone,
+      correo: formData.email,
+      pais_nacimiento: formData.birthCountry,
+      pais_residencia: formData.residenceCountry,
+      depto: formData.residenceDept,
+      municipio: formData.residenceMun,
+      direccion: formData.address,
+      emergencia_nombre: formData.emergencyName,
+      emergencia_parentesco: formData.emergencyRelation,
+      emergencia_telefono: formData.emergencyPhone,
+      regimen: formData.affiliation,
+      eps: formData.eps,
+      prepagada: formData.prepaid,
+      plan_complementario: formData.complementary,
       sca: sca.toString(),
       dm2: dm2.toString(),
       comorbidities: hasComorbidities.toString(),
@@ -252,7 +323,6 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
 
   const isStepValid = () => {
     switch (step) {
-      case 0: return password === 'CAIMEDCARDIOPREVENTIVA2026*';
       case 1: return true;
       case 2: return formData.consent;
       case 3: 
@@ -283,23 +353,6 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
 
   const renderStep = () => {
     switch (step) {
-      case 0:
-        return (
-          <div className="flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 bg-gradient-to-r from-blue-900 via-blue-800 to-slate-900 text-white p-12 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-            <h1 className="text-4xl font-black text-white tracking-tight relative z-10">Acceso Restringido</h1>
-            <p className="text-lg font-medium text-blue-200 relative z-10">Por favor, ingrese la contraseña para continuar.</p>
-            <div className="w-full max-w-md relative z-10">
-              <input 
-                type="password" 
-                value={password} 
-                onChange={e => setPassword(e.target.value)} 
-                className="w-full p-4 rounded-xl border-2 border-white/20 bg-white/10 text-white placeholder-blue-200 focus:border-white focus:ring-2 focus:ring-white/50 outline-none transition-all text-center text-xl tracking-widest"
-                placeholder="Contraseña"
-              />
-              {passwordError && <p className="text-red-300 mt-2 font-bold">Contraseña incorrecta</p>}
-            </div>
-          </div>
-        );
       case 1:
         return (
           <div className="flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 bg-gradient-to-r from-blue-900 via-blue-800 to-slate-900 text-white p-12 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
@@ -1580,18 +1633,7 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
 
         {renderStep()}
 
-        {step === 0 && (
-          <div className="mt-8 flex justify-center">
-            <button
-              onClick={handleNext}
-              className="px-8 py-4 rounded-xl font-bold text-white shadow-lg transition-all bg-blue-600 hover:bg-blue-700 shadow-blue-500/30 hover:-translate-y-1 text-lg"
-            >
-              Ingresar
-            </button>
-          </div>
-        )}
-
-        {step > 0 && step <= totalSteps && (
+        {step > 0 && step <= totalSteps && !editMode && (
           <div className="mt-12 flex justify-between items-center pt-6 border-t border-slate-100">
             <button
               onClick={handlePrev}
@@ -1604,11 +1646,27 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
               disabled={!isStepValid() || isSubmitting}
               className={`px-8 py-3 rounded-xl font-bold text-white shadow-lg transition-all ${
                 isStepValid() && !isSubmitting
-                  ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30 hover:-translate-y-1' 
+                  ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30 hover:-translate-y-1'
                   : 'bg-slate-300 cursor-not-allowed shadow-none'
               }`}
             >
               {isSubmitting ? 'Procesando...' : (step === totalSteps ? 'Finalizar' : 'Siguiente')}
+            </button>
+          </div>
+        )}
+
+        {editMode && (
+          <div className="mt-12 flex justify-end items-center pt-6 border-t border-slate-100">
+            <button
+              onClick={() => onComplete(generateUrl())}
+              disabled={!isStepValid() || isSubmitting}
+              className={`px-8 py-3 rounded-xl font-bold text-white shadow-lg transition-all ${
+                isStepValid() && !isSubmitting
+                  ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30 hover:-translate-y-1'
+                  : 'bg-slate-300 cursor-not-allowed shadow-none'
+              }`}
+            >
+              Guardar cambios
             </button>
           </div>
         )}

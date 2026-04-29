@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft } from "lucide-react"
+import { ChevronLeft, Pencil } from "lucide-react"
 import ClinicalHistoryClient from "@/components/admin/clinical/ClinicalHistoryClientLoader"
 import AssessmentTimeline from "@/components/admin/clinical/AssessmentTimeline"
 import QuestionnaireWrapper from "@/components/admin/clinical/QuestionnaireWrapper"
@@ -37,7 +37,8 @@ export default async function HistoriaClinicaPage({
     // tabla puede no existir si la migración no se ha aplicado
   }
 
-  const showQuestionnaire = mode === "new" || assessments.length === 0
+  const showQuestionnaire = mode === "new" || mode === "edit-profile" || assessments.length === 0
+  const editProfileMode = mode === "edit-profile"
 
   // Mostrar reporte específico si viene ?report=id
   if (report && !showQuestionnaire) {
@@ -80,17 +81,32 @@ export default async function HistoriaClinicaPage({
           <p className="text-sm text-tertiary">{patient.name}</p>
         </div>
         {!showQuestionnaire && (
-          <Link
-            href={`/admin/pacientes/${id}/historia-clinica?mode=new`}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
-          >
-            + Nueva evaluación
-          </Link>
+          <div className="flex items-center gap-2">
+            {profile && (
+              <Link
+                href={`/admin/pacientes/${id}/historia-clinica?mode=edit-profile`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Editar datos personales
+              </Link>
+            )}
+            <Link
+              href={`/admin/pacientes/${id}/historia-clinica?mode=new`}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+            >
+              + Nueva evaluación
+            </Link>
+          </div>
         )}
       </div>
 
       {showQuestionnaire ? (
-        <QuestionnaireWrapper userId={id} />
+        <QuestionnaireWrapper
+          userId={id}
+          profile={(profile ?? null) as PatientClinicalProfile | null}
+          editMode={editProfileMode}
+        />
       ) : (
         <>
           <div className="mb-6">
