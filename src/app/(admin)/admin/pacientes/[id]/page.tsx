@@ -145,6 +145,12 @@ export default async function PacienteDetailPage({
             <p className="text-tertiary">{patient.email}</p>
           </div>
           <div className="flex items-center gap-3">
+            <a
+              href={`/admin/pacientes/${id}/historia-clinica`}
+              className="rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+            >
+              Historia clínica →
+            </a>
             <ExportButton patientId={id} patientName={patient.name} />
           </div>
         </div>
