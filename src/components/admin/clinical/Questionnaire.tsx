@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   HeartPulse, User, CreditCard, Calendar, Phone, Mail,
   Ruler, Scale, Activity, Pill, Package, Moon, Dumbbell,
-  Check, ChevronRight, ChevronLeft, Loader2, Link as LinkIcon, CheckCircle2, FileText
+  Check, ChevronRight, ChevronLeft, Loader2, Link as LinkIcon, CheckCircle2
 } from 'lucide-react';
 import TermsModal from './TermsModal';
 import { colombia } from '@/lib/clinical/data/colombia';
@@ -1562,13 +1562,6 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
                 <span>Paso {step} de {totalSteps}</span>
                 <span className="ml-2">{Math.round((step / totalSteps) * 100)}%</span>
               </div>
-              <button 
-                onClick={() => onComplete(generateUrl())}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors"
-              >
-                <FileText className="w-4 h-4" />
-                Ver PDF prellenado
-              </button>
             </div>
             <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden mb-4">
               <div 

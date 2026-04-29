@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import { useRouter } from "next/navigation"
 import Questionnaire from "./Questionnaire"
 import { saveAssessment, upsertClinicalProfile } from "@/lib/clinical/actions"
@@ -28,10 +29,13 @@ const URL_TO_COMPONENTE: Record<string, string> = {
 
 export default function QuestionnaireWrapper({ userId }: Props) {
   const router = useRouter()
+  const submittingRef = useRef(false)
 
   return (
     <Questionnaire
       onComplete={async (urlString) => {
+        if (submittingRef.current) return
+        submittingRef.current = true
         try {
           const url = new URL(urlString)
           const params = url.searchParams
@@ -86,6 +90,7 @@ export default function QuestionnaireWrapper({ userId }: Props) {
           router.push(`/admin/pacientes/${userId}/historia-clinica`)
           router.refresh()
         } catch (err) {
+          submittingRef.current = false
           alert(`No se pudo guardar la evaluación: ${(err as Error).message}`)
         }
       }}
