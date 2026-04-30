@@ -345,7 +345,15 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 13: return formData.gender !== 'Masculino' || formData.erectileDysfunction.every(v => v >= 0);
       case 14: return formData.smoked !== null;
       case 15: return formData.smoked === false || formData.smokeStatus.length > 0;
-      case 16: return formData.activity !== '' && formData.sleep !== '';
+      case 16: {
+        const activityNum = Number(formData.activity);
+        const sleepNum = Number(formData.sleep);
+        const activityValid =
+          formData.activity !== '' && Number.isFinite(activityNum) && activityNum >= 0 && activityNum <= 1440;
+        const sleepValid =
+          formData.sleep !== '' && Number.isFinite(sleepNum) && sleepNum >= 0 && sleepNum <= 24;
+        return activityValid && sleepValid;
+      }
       case 17: return formData.phq9.every(v => v >= 0) && (formData.phq9.some(v => v > 0) ? formData.phq9Difficulty >= 0 : true);
       case 18: return formData.medas.every(v => v >= 0);
       default: return true;
@@ -1296,24 +1304,6 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
           </div>
         );
       case 16: {
-        const activityBuckets = [
-          { label: "0 minutos", value: "0" },
-          { label: "1 a 29 minutos", value: "15" },
-          { label: "30 a 59 minutos", value: "45" },
-          { label: "60 a 89 minutos (1-1.4 horas)", value: "75" },
-          { label: "90 a 119 minutos (1.5-1.9 horas)", value: "105" },
-          { label: "120 a 149 minutos (2-2.4 horas)", value: "135" },
-          { label: "Mayor o igual a 150 minutos (2.5 horas)", value: "150" },
-        ];
-        const sleepBuckets = [
-          { label: "Menos de 4 horas (críticamente bajo)", value: "3.5" },
-          { label: "De 4 a 5 horas (muy bajo)", value: "4.5" },
-          { label: "De 5 a 6 horas (subóptimo)", value: "5.5" },
-          { label: "De 6 a 7 horas (levemente reducido)", value: "6.5" },
-          { label: "De 7 a 9 horas (óptimo)", value: "8" },
-          { label: "De 9 a 10 horas (levemente prolongado)", value: "9.5" },
-          { label: "Más de 10 horas (subóptimo)", value: "11" },
-        ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[60vh] overflow-y-auto pr-2">
             <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
@@ -1321,55 +1311,50 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             </h2>
 
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <p className="text-slate-700 font-bold mb-4">En promedio, ¿cuántos minutos a la semana dedica a actividades físicas moderadas o vigorosas? (caminar rápido, montar bicicleta, nadar, correr, etc.)</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {activityBuckets.map(b => (
-                  <label
-                    key={b.value}
-                    className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all text-sm ${
-                      formData.activity === b.value
-                        ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="activity"
-                      value={b.value}
-                      checked={formData.activity === b.value}
-                      onChange={() => setFormData({...formData, activity: b.value})}
-                      className="hidden"
-                    />
-                    {b.label}
-                  </label>
-                ))}
+              <label className="block text-slate-700 font-bold mb-2" htmlFor="activity-minutes">
+                En promedio, ¿cuántos minutos a la semana dedica a actividades físicas moderadas o vigorosas?
+              </label>
+              <p className="text-slate-500 text-sm mb-4">
+                Caminar rápido, montar bicicleta, nadar, correr, etc.
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  id="activity-minutes"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={1440}
+                  step={1}
+                  value={formData.activity}
+                  onChange={(e) => setFormData({ ...formData, activity: e.target.value })}
+                  className="w-40 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 text-base focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="0"
+                />
+                <span className="text-slate-600 text-sm">minutos por semana</span>
               </div>
+              <p className="mt-2 text-xs text-slate-500">Rango aceptado: 0 a 1440 minutos.</p>
             </div>
 
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <p className="text-slate-700 font-bold mb-4">En promedio, ¿cuántas horas duerme por noche?</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {sleepBuckets.map(b => (
-                  <label
-                    key={b.value}
-                    className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all text-sm ${
-                      formData.sleep === b.value
-                        ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="sleep"
-                      value={b.value}
-                      checked={formData.sleep === b.value}
-                      onChange={() => setFormData({...formData, sleep: b.value})}
-                      className="hidden"
-                    />
-                    {b.label}
-                  </label>
-                ))}
+              <label className="block text-slate-700 font-bold mb-4" htmlFor="sleep-hours">
+                En promedio, ¿cuántas horas duerme por noche?
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="sleep-hours"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  max={24}
+                  step={0.5}
+                  value={formData.sleep}
+                  onChange={(e) => setFormData({ ...formData, sleep: e.target.value })}
+                  className="w-40 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 text-base focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="0"
+                />
+                <span className="text-slate-600 text-sm">horas por noche</span>
               </div>
+              <p className="mt-2 text-xs text-slate-500">Rango aceptado: 0 a 24 horas, incrementos de 0.5.</p>
             </div>
           </div>
         );
