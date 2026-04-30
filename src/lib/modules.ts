@@ -2,6 +2,104 @@ import type { Module, ModuleCompletion, ModuleWithStatus, PatientComponent, Pati
 import { COMPONENT_TO_MODULE_KEY } from "@/types/database"
 
 /**
+ * Mapea el `nombre` de cada componente almacenado en patient_assessments.components
+ * al `component_key` correspondiente del módulo de la Escuela de Pacientes.
+ */
+export const ASSESSMENT_COMPONENT_TO_MODULE_KEY: Record<string, string> = {
+  'Empoderamiento': 'empoderamiento_salud',
+  'Red de apoyo': 'red_de_apoyo',
+  'Adherencia a medicamentos': 'adherencia',
+  'Acceso a medicamentos': 'adherencia',
+  'Actividad física': 'actividad_fisica',
+  'Alimentación': 'alimentacion',
+  'Salud mental': 'salud_mental',
+  'Sueño': 'sueno',
+  'Presión arterial': 'presion_arterial',
+  'Glucosa': 'glucosa',
+  'Colesterol': 'colesterol',
+  'Nicotina': 'nicotina',
+  'Peso': 'control_peso',
+}
+
+interface AssessmentComponent {
+  nombre: string
+  puntaje: number
+}
+
+/**
+ * Construye la ruta automática a partir del último reporte clínico:
+ * 1. "Inicio de ciclo" (siempre primero)
+ * 2. "El incendio que vamos a apagar" (si existe)
+ * 3-5. Top 3 prioridades = los 3 componentes con MENOR puntaje (peor estado)
+ * 6+. Resto de módulos en orden fijo, con filtros condicionales (sexo / meds)
+ * Último: "Cierre de ciclo"
+ */
+export function buildAutoRoute(
+  allModules: Module[],
+  assessmentComponents: AssessmentComponent[],
+  sexo: string | null,
+  takesChronicMedication: boolean,
+): { route: Module[]; pathCount: number } {
+  const route: Module[] = []
+  const usedIds = new Set<string>()
+
+  const isMale = sexo === 'Masculino' || sexo === 'M' || sexo === 'masculino' || sexo === 'male'
+
+  // 1. Inicio
+  const inicio = allModules.find((m) => m.component_key === 'empowerment' || m.order === 1)
+  if (inicio) {
+    route.push(inicio)
+    usedIds.add(inicio.id)
+  }
+
+  // 2. El incendio
+  const elIncendio = allModules.find((m) => m.component_key === 'el_incendio')
+  if (elIncendio && !usedIds.has(elIncendio.id)) {
+    route.push(elIncendio)
+    usedIds.add(elIncendio.id)
+  }
+
+  // 3-5. Top 3 prioridades (menor puntaje = peor estado = mayor prioridad)
+  const sortedByPriority = [...assessmentComponents].sort((a, b) => a.puntaje - b.puntaje)
+  let topAdded = 0
+  for (const comp of sortedByPriority) {
+    if (topAdded >= 3) break
+    const key = ASSESSMENT_COMPONENT_TO_MODULE_KEY[comp.nombre]
+    if (!key) continue
+    if (key === 'salud_sexual' && !isMale) continue
+    if (key === 'adherencia' && !takesChronicMedication) continue
+    const mod = allModules.find((m) => m.component_key === key && !usedIds.has(m.id))
+    if (mod) {
+      route.push(mod)
+      usedIds.add(mod.id)
+      topAdded++
+    }
+  }
+
+  // pathCount = 1 (Inicio) + (1 si hay elIncendio) + top3
+  const pathCount = route.length
+
+  // 6+. Resto de módulos en orden fijo
+  for (const componentKey of REMAINING_MODULES_FIXED_ORDER) {
+    if (componentKey === 'adherencia' && !takesChronicMedication) continue
+    if (componentKey === 'salud_sexual' && !isMale) continue
+    const mod = allModules.find((m) => m.component_key === componentKey && !usedIds.has(m.id))
+    if (mod) {
+      route.push(mod)
+      usedIds.add(mod.id)
+    }
+  }
+
+  // Cierre
+  const cierre = allModules.find((m) => m.component_key === 'empowerment_cierre')
+  if (cierre && !usedIds.has(cierre.id)) {
+    route.push(cierre)
+  }
+
+  return { route, pathCount }
+}
+
+/**
  * Fixed order for remaining modules (after priorities).
  * 'adherencia' is conditional: only included if takes_chronic_medication === true
  * 'salud_sexual' is conditional: only included if gender === 'male' && wants_salud_sexual
@@ -170,6 +268,36 @@ export function getModulesWithStatus(
       ...mod,
       status,
       unlock_date: unlockDate ? new Date(unlockDate) : null,
+      completed_at: completedAt,
+      progress_percent: progressPercent,
+      submodules_total: subProgress.total,
+      submodules_completed: subProgress.completed,
+    }
+  })
+}
+
+/**
+ * Variante de getModulesWithStatus para el flujo auto-personalizado:
+ * todos los módulos quedan siempre desbloqueados; solo se distingue
+ * "completed" vs "current" (accesible).
+ */
+export function getModulesAllUnlocked(
+  routeModules: Module[],
+  completions: ModuleCompletion[],
+  submoduleCounts: Record<string, { total: number; completed: number }>,
+): ModuleWithStatus[] {
+  const completionMap = new Map(completions.map((c) => [c.module_id, c.completed_at]))
+  return routeModules.map((mod) => {
+    const completedAt = completionMap.get(mod.id)
+    const isCompleted = !!completedAt
+    const subProgress = submoduleCounts[mod.id] ?? { total: 0, completed: 0 }
+    const progressPercent = subProgress.total > 0
+      ? Math.round((subProgress.completed / subProgress.total) * 100)
+      : (isCompleted ? 100 : 0)
+    return {
+      ...mod,
+      status: isCompleted ? "completed" : "current",
+      unlock_date: null,
       completed_at: completedAt,
       progress_percent: progressPercent,
       submodules_total: subProgress.total,

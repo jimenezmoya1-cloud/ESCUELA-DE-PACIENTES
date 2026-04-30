@@ -42,18 +42,6 @@ export default function ModuleRoadmap({
         })}
       </div>
 
-      {/* Info card about progressive unlocking */}
-      <div className="mt-8 rounded-xl border-2 border-dashed border-[#1E8DCE]/30 bg-[#06559F]/5 p-4 text-center">
-        <div className="flex items-center justify-center gap-2 text-sm font-medium text-[#06559F]">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          Los módulos se desbloquean al avanzar
-        </div>
-        <p className="mt-1 text-xs text-[#06559F]/70">
-          Completa cada módulo para desbloquear el siguiente en tu ruta personalizada.
-        </p>
-      </div>
     </div>
   )
 }
