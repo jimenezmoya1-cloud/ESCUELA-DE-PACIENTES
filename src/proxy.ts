@@ -44,10 +44,22 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Si hay usuario y está en ruta de auth (login/registro), redirigir al dashboard
+  // Si hay usuario y está en ruta de auth (login/registro), redirigir según rol.
   if (user && (pathname === "/login" || pathname === "/registro")) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("role, is_active")
+      .eq("id", user.id)
+      .single()
+
+    let target = "/mi-camino"
+    if (profile?.is_active) {
+      if (profile.role === "admin") target = "/admin"
+      else if (profile.role === "clinico") target = "/admin/clinico/dashboard"
+    }
+
     const url = request.nextUrl.clone()
-    url.pathname = "/mi-camino"
+    url.pathname = target
     return NextResponse.redirect(url)
   }
 
