@@ -7,17 +7,18 @@ import ReportPage2 from "@/components/admin/clinical/ReportPage2"
 import ReportPage3 from "@/components/admin/clinical/ReportPage3"
 import { calcularEdad } from "@/lib/clinical/scoring"
 import { DATOS_INICIALES_PACIENTE } from "@/lib/clinical/constants"
-import type { DatosPaciente } from "@/lib/clinical/types"
+import type { DatosPaciente, CreatorSignature } from "@/lib/clinical/types"
 import type { PatientAssessment, PatientClinicalProfile } from "@/types/database"
 
 interface Props {
   assessment: PatientAssessment
   profile: PatientClinicalProfile | null
   evaluacionInicialScore: number | null
+  creator: CreatorSignature | null
   showBackToList?: boolean
 }
 
-export default function PatientReportView({ assessment, profile, evaluacionInicialScore, showBackToList = false }: Props) {
+export default function PatientReportView({ assessment, profile, evaluacionInicialScore, creator, showBackToList = false }: Props) {
   const page1Ref = useRef<HTMLDivElement>(null)
   const page2Ref = useRef<HTMLDivElement>(null)
   const page3Ref = useRef<HTMLDivElement>(null)
@@ -136,6 +137,7 @@ export default function PatientReportView({ assessment, profile, evaluacionInici
           alertas={{ criticas: assessment.alertas_criticas, orientadoras: assessment.alertas_orientadoras }}
           modoEdicion={false}
           isGenerando={isGenerando}
+          creator={creator}
           onAddAlerta={noop}
           onRemoveAlerta={noop}
           onUpdateAlerta={noop}

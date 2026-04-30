@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { revalidatePath } from "next/cache"
 import { recomputeAssessment, calcularEdad } from "./scoring"
-import type { ComponenteScore, AlertaItem } from "./types"
+import type { ComponenteScore, AlertaItem, CreatorSignature } from "./types"
 import type { PatientClinicalProfile, PatientAssessment } from "@/types/database"
 
 interface SaveAssessmentInput {
@@ -162,4 +162,33 @@ export async function getAssessmentTimeline(
     .order("created_at", { ascending: false })
 
   return (data ?? []) as Array<Pick<PatientAssessment, "id" | "created_at" | "score_global" | "nivel">>
+}
+
+/**
+ * Firma del clínico que creó la evaluación de salud.
+ * Devuelve null si created_by es null (auto-diligenciado).
+ */
+export async function getCreatorSignature(
+  staffId: string | null,
+  createdAt: string,
+): Promise<CreatorSignature | null> {
+  if (!staffId) return null
+
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("users")
+    .select("name, profession, specialty, medical_registration, professional_id_card")
+    .eq("id", staffId)
+    .maybeSingle()
+
+  if (!data) return null
+
+  return {
+    full_name: data.name,
+    profession: data.profession ?? null,
+    specialty: data.specialty ?? null,
+    medical_registration: data.medical_registration ?? null,
+    professional_id_card: data.professional_id_card ?? null,
+    created_at: createdAt,
+  }
 }

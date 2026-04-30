@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import PatientReportView from "@/components/dashboard/clinical/PatientReportViewLoader"
-import { getAssessmentsByDateRange } from "@/lib/clinical/actions"
+import { getAssessmentsByDateRange, getCreatorSignature } from "@/lib/clinical/actions"
 import type { PatientClinicalProfile } from "@/types/database"
 import type { AssessmentWithDelta } from "@/components/dashboard/clinical/AssessmentListWithDelta"
 import PatientReportsList from "@/components/dashboard/clinical/PatientReportsList"
@@ -50,11 +50,13 @@ export default async function MiHistoriaClinicaPage({
       const oldest = assessments[assessments.length - 1]
       const evaluacionInicialScore =
         oldest && oldest.id !== selected.id ? oldest.score_global : null
+      const selectedCreator = await getCreatorSignature(selected.created_by, selected.created_at)
       return (
         <PatientReportView
           assessment={selected}
           profile={(profile ?? null) as PatientClinicalProfile | null}
           evaluacionInicialScore={evaluacionInicialScore}
+          creator={selectedCreator}
           showBackToList={true}
         />
       )

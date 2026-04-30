@@ -3,20 +3,68 @@
 import { forwardRef } from "react"
 import { AlertTriangle, Info, Plus, X } from "lucide-react"
 import HeaderSimple from "./HeaderSimple"
-import type { DatosPaciente, DatosAlertas } from "@/lib/clinical/types"
+import type { DatosPaciente, DatosAlertas, CreatorSignature } from "@/lib/clinical/types"
 
 interface Props {
   paciente: DatosPaciente
   alertas: DatosAlertas
   modoEdicion: boolean
   isGenerando: boolean
+  creator?: CreatorSignature | null
   onAddAlerta: (tipo: "criticas" | "orientadoras") => void
   onRemoveAlerta: (tipo: "criticas" | "orientadoras", id: number) => void
   onUpdateAlerta: (tipo: "criticas" | "orientadoras", id: number, valor: string) => void
 }
 
+const PROFESSION_LABEL: Record<NonNullable<CreatorSignature["profession"]>, string> = {
+  medico: "Médico/a",
+  enfermero: "Enfermero/a",
+  otro: "Otro",
+}
+
+function formatRegistroFecha(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  const fecha = d.toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" })
+  const hora = d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })
+  return `${fecha} ${hora}`
+}
+
+function SignatureBlock({ creator }: { creator: CreatorSignature | null | undefined }) {
+  if (!creator) {
+    return (
+      <div className="mt-10 mx-auto max-w-md border-t border-slate-300/70 pt-6 text-center">
+        <p className="text-xs uppercase tracking-[0.18em] text-slate-500 mb-2">
+          Evaluación de salud realizada por
+        </p>
+        <p className="text-sm font-semibold text-slate-700">Auto-diligenciado por el paciente</p>
+      </div>
+    )
+  }
+
+  const profession = creator.profession ? PROFESSION_LABEL[creator.profession] : null
+  const segundaLinea = [profession, creator.specialty].filter(Boolean).join(" · ")
+
+  return (
+    <div className="mt-10 mx-auto max-w-md border-t border-slate-300/70 pt-6 text-center">
+      <p className="text-xs uppercase tracking-[0.18em] text-slate-500 mb-2">
+        Evaluación de salud realizada por
+      </p>
+      <p className="text-base font-bold text-slate-800">{creator.full_name}</p>
+      {segundaLinea && <p className="text-sm text-slate-600">{segundaLinea}</p>}
+      {creator.medical_registration && (
+        <p className="text-sm text-slate-600">Reg. médico: {creator.medical_registration}</p>
+      )}
+      {creator.professional_id_card && (
+        <p className="text-sm text-slate-600">Tarjeta profesional: {creator.professional_id_card}</p>
+      )}
+      <p className="mt-3 text-xs text-slate-500">Registro: {formatRegistroFecha(creator.created_at)}</p>
+    </div>
+  )
+}
+
 const ReportPage3 = forwardRef<HTMLDivElement, Props>(function ReportPage3(
-  { paciente, alertas, modoEdicion, isGenerando, onAddAlerta, onRemoveAlerta, onUpdateAlerta },
+  { paciente, alertas, modoEdicion, isGenerando, creator, onAddAlerta, onRemoveAlerta, onUpdateAlerta },
   ref,
 ) {
   return (
@@ -150,6 +198,8 @@ const ReportPage3 = forwardRef<HTMLDivElement, Props>(function ReportPage3(
           </div>
         </div>
       </div>
+
+      <SignatureBlock creator={creator} />
 
       <footer className="mt-auto border-t border-slate-300/50 py-6 text-center">
         <div className="flex items-center justify-center gap-2 mb-2">

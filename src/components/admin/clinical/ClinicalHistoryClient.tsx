@@ -9,7 +9,7 @@ import ReportPage3 from "./ReportPage3"
 import { calcularEdad, recomputeAssessment } from "@/lib/clinical/scoring"
 import { saveAssessment } from "@/lib/clinical/actions"
 import { SCORES_INICIALES, ALERTAS_INICIALES, DATOS_INICIALES_PACIENTE } from "@/lib/clinical/constants"
-import type { DatosPaciente, ComponenteScore, DatosAlertas, AlertaItem } from "@/lib/clinical/types"
+import type { DatosPaciente, ComponenteScore, DatosAlertas, AlertaItem, CreatorSignature } from "@/lib/clinical/types"
 import type { PatientAssessment, PatientClinicalProfile } from "@/types/database"
 
 interface Props {
@@ -17,6 +17,7 @@ interface Props {
   initialAssessment: PatientAssessment | null
   clinicalProfile: PatientClinicalProfile | null
   evaluacionInicialScore: number | null
+  creator: CreatorSignature | null
   initialMode?: "view" | "edit"
 }
 
@@ -26,6 +27,7 @@ export default function ClinicalHistoryClient({
   initialAssessment,
   clinicalProfile,
   evaluacionInicialScore,
+  creator,
   initialMode = "view",
 }: Props) {
   const router = useRouter()
@@ -240,6 +242,7 @@ export default function ClinicalHistoryClient({
           alertas={alertas}
           modoEdicion={modoEdicion}
           isGenerando={isGenerando}
+          creator={creator}
           onAddAlerta={handleAddAlerta}
           onRemoveAlerta={handleRemoveAlerta}
           onUpdateAlerta={handleUpdateAlerta}

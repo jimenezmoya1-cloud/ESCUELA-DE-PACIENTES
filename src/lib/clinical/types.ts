@@ -6,6 +6,15 @@ export interface ContextoClinico {
   edad: number
 }
 
+export interface CreatorSignature {
+  full_name: string
+  profession: "medico" | "enfermero" | "otro" | null
+  specialty: string | null
+  medical_registration: string | null
+  professional_id_card: string | null
+  created_at: string
+}
+
 export interface ComponenteScore {
   nombre: string
   puntaje: number

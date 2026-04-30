@@ -7,7 +7,7 @@ import AssessmentTimeline from "@/components/admin/clinical/AssessmentTimeline"
 import QuestionnaireWrapper from "@/components/admin/clinical/QuestionnaireWrapper"
 import PatientReportsListAdmin from "@/components/admin/clinical/PatientReportsListAdmin"
 import PatientReportView from "@/components/dashboard/clinical/PatientReportViewLoader"
-import { getAssessmentsByDateRange } from "@/lib/clinical/actions"
+import { getAssessmentsByDateRange, getCreatorSignature } from "@/lib/clinical/actions"
 import type { PatientClinicalProfile, AssessmentNivel } from "@/types/database"
 
 export default async function HistoriaClinicaPage({
@@ -47,6 +47,7 @@ export default async function HistoriaClinicaPage({
       const oldest = assessments[assessments.length - 1]
       const evaluacionInicialScore =
         oldest && oldest.id !== selected.id ? oldest.score_global : null
+      const selectedCreator = await getCreatorSignature(selected.created_by, selected.created_at)
       return (
         <div>
           <Link
@@ -59,6 +60,7 @@ export default async function HistoriaClinicaPage({
             assessment={selected}
             profile={(profile ?? null) as PatientClinicalProfile | null}
             evaluacionInicialScore={evaluacionInicialScore}
+            creator={selectedCreator}
             showBackToList={true}
           />
         </div>
@@ -132,6 +134,11 @@ export default async function HistoriaClinicaPage({
             clinicalProfile={(profile ?? null) as PatientClinicalProfile | null}
             evaluacionInicialScore={
               assessments.length > 1 ? assessments[assessments.length - 1].score_global : null
+            }
+            creator={
+              assessments[0]
+                ? await getCreatorSignature(assessments[0].created_by, assessments[0].created_at)
+                : null
             }
           />
         </>
