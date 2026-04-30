@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { inviteStaff, type InviteStaffInput } from "@/app/(admin)/admin/personal/actions"
+import { createStaff, type CreateStaffInput } from "@/app/(admin)/admin/personal/actions"
 
 export default function InviteStaffForm() {
   const [pending, startTransition] = useTransition()
@@ -9,16 +9,17 @@ export default function InviteStaffForm() {
   const [success, setSuccess] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
 
-  const [form, setForm] = useState<InviteStaffInput>({
+  const [form, setForm] = useState<CreateStaffInput>({
     fullName: "",
     email: "",
+    password: "",
     profession: "medico",
     specialty: "",
     medicalRegistration: "",
     professionalIdCard: "",
   })
 
-  function update<K extends keyof InviteStaffInput>(key: K, value: InviteStaffInput[K]) {
+  function update<K extends keyof CreateStaffInput>(key: K, value: CreateStaffInput[K]) {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
@@ -27,12 +28,12 @@ export default function InviteStaffForm() {
     setError(null)
     setSuccess(null)
     startTransition(async () => {
-      const result = await inviteStaff(form)
+      const result = await createStaff(form)
       if (!result.ok) {
         setError(result.error)
       } else {
-        setSuccess("Invitación enviada")
-        setForm({ fullName: "", email: "", profession: "medico", specialty: "", medicalRegistration: "", professionalIdCard: "" })
+        setSuccess(`Cuenta creada. Comparte el correo y la contraseña con ${form.fullName.trim()}.`)
+        setForm({ fullName: "", email: "", password: "", profession: "medico", specialty: "", medicalRegistration: "", professionalIdCard: "" })
       }
     })
   }
@@ -43,7 +44,7 @@ export default function InviteStaffForm() {
         onClick={() => setOpen(true)}
         className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
       >
-        Invitar clínico
+        Crear clínico
       </button>
     )
   }
@@ -71,11 +72,24 @@ export default function InviteStaffForm() {
             className="mt-1 w-full rounded-lg border border-tertiary/20 px-3 py-2 text-sm"
           />
         </label>
+        <label className="block md:col-span-2">
+          <span className="text-sm font-medium text-neutral">Contraseña inicial *</span>
+          <input
+            type="text"
+            value={form.password}
+            onChange={(e) => update("password", e.target.value)}
+            required
+            minLength={8}
+            placeholder="Mínimo 8 caracteres"
+            className="mt-1 w-full rounded-lg border border-tertiary/20 px-3 py-2 text-sm"
+          />
+          <span className="mt-1 block text-xs text-tertiary">Compártela con el clínico para su primer ingreso.</span>
+        </label>
         <label className="block">
           <span className="text-sm font-medium text-neutral">Profesión *</span>
           <select
             value={form.profession}
-            onChange={(e) => update("profession", e.target.value as InviteStaffInput["profession"])}
+            onChange={(e) => update("profession", e.target.value as CreateStaffInput["profession"])}
             className="mt-1 w-full rounded-lg border border-tertiary/20 px-3 py-2 text-sm"
           >
             <option value="medico">Médico/a</option>
@@ -121,7 +135,7 @@ export default function InviteStaffForm() {
           disabled={pending}
           className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
         >
-          {pending ? "Enviando…" : "Enviar invitación"}
+          {pending ? "Creando…" : "Crear cuenta"}
         </button>
         <button
           type="button"
