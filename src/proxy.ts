@@ -51,6 +51,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Exponer la ruta actual al layout para que pueda restringir rutas por rol.
+  supabaseResponse.headers.set("x-pathname", pathname)
+
   return supabaseResponse
 }
 
