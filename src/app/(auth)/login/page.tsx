@@ -46,6 +46,8 @@ export default function LoginPage() {
 
         if (profile?.role === "admin") {
           router.push("/admin")
+        } else if (profile?.role === "clinico") {
+          router.push("/admin/clinico/dashboard")
         } else {
           router.push("/mi-camino")
         }

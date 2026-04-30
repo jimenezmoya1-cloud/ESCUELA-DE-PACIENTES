@@ -12,7 +12,9 @@ export default async function Home() {
       .eq("id", user.id)
       .single()
 
-    redirect(profile?.role === "admin" ? "/admin" : "/mi-camino")
+    if (profile?.role === "admin") redirect("/admin")
+    if (profile?.role === "clinico") redirect("/admin/clinico/dashboard")
+    redirect("/mi-camino")
   }
 
   redirect("/login")
