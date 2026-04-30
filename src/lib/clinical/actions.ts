@@ -20,17 +20,22 @@ interface SaveAssessmentInput {
   notes?: string | null
 }
 
-async function assertAdmin() {
+async function assertStaff() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("unauthorized")
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single()
-  if (profile?.role !== "admin") throw new Error("forbidden")
+  const { data: profile } = await supabase
+    .from("users")
+    .select("role, is_active")
+    .eq("id", user.id)
+    .single()
+  if (!profile || !profile.is_active) throw new Error("forbidden")
+  if (profile.role !== "admin" && profile.role !== "clinico") throw new Error("forbidden")
   return user
 }
 
 export async function saveAssessment(input: SaveAssessmentInput): Promise<{ id: string }> {
-  const adminUser = await assertAdmin()
+  const staffUser = await assertStaff()
   const supabase = createAdminClient()
 
   const { data: clinicalProfile } = await supabase
@@ -55,11 +60,13 @@ export async function saveAssessment(input: SaveAssessmentInput): Promise<{ id: 
   }
   const { components, scoreGlobal, nivel, metaScore } = recomputeAssessment(input.components, contexto)
 
+  // patient_assessments es append-only: solo se setea created_by.
+  // last_modified_by/at existen para futuros casos de edición.
   const { data: inserted, error } = await supabase
     .from("patient_assessments")
     .insert({
       user_id: input.user_id,
-      created_by: adminUser.id,
+      created_by: staffUser.id,
       components,
       is_sca: input.is_sca,
       is_dm2: input.is_dm2,
@@ -88,7 +95,7 @@ export async function upsertClinicalProfile(
   userId: string,
   profile: Partial<Omit<PatientClinicalProfile, "user_id" | "updated_at">>,
 ): Promise<void> {
-  await assertAdmin()
+  await assertStaff()
   const supabase = createAdminClient()
 
   const { error } = await supabase
