@@ -45,19 +45,17 @@ export function buildAutoRoute(
 
   const isMale = sexo === 'Masculino' || sexo === 'M' || sexo === 'masculino' || sexo === 'male'
 
-  // 1. Inicio
+  // 1. Inicio (incluye conceptualmente "el incendio que vamos a apagar")
   const inicio = allModules.find((m) => m.component_key === 'empowerment' || m.order === 1)
   if (inicio) {
     route.push(inicio)
     usedIds.add(inicio.id)
   }
 
-  // 2. El incendio
+  // "El incendio" se absorbe en Inicio: lo marcamos como usado para que no
+  // reaparezca en la biblioteca, pero no lo mostramos como tarjeta aparte.
   const elIncendio = allModules.find((m) => m.component_key === 'el_incendio')
-  if (elIncendio && !usedIds.has(elIncendio.id)) {
-    route.push(elIncendio)
-    usedIds.add(elIncendio.id)
-  }
+  if (elIncendio) usedIds.add(elIncendio.id)
 
   // 3-5. Top 3 prioridades (menor puntaje = peor estado = mayor prioridad)
   const sortedByPriority = [...assessmentComponents].sort((a, b) => a.puntaje - b.puntaje)
