@@ -24,7 +24,7 @@ const ICON_SIZE_CLASSES = {
 }
 
 export function BadgeIcon({ icon, category, unlocked, size = "md" }: BadgeIconProps) {
-  const styles = CATEGORY_STYLES[category]
+  const styles = CATEGORY_STYLES[category] ?? CATEGORY_STYLES.special
   const IconComp = (LucideIcons as unknown as Record<string, LucideIcons.LucideIcon>)[icon]
     ?? LucideIcons.HelpCircle
 
