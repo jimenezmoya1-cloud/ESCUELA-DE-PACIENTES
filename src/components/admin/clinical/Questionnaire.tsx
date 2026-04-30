@@ -9,6 +9,7 @@ import {
 import TermsModal from './TermsModal';
 import { colombia } from '@/lib/clinical/data/colombia';
 import { countries } from '@/lib/clinical/data/countries';
+import { REGIMEN_AFILIACION, EPS_LIST, PREPAGADAS_LIST, PLAN_COMPLEMENTARIO_LIST } from '@/lib/clinical/data/colombia-health';
 
 const getCaimedMessage = (step: number) => {
   switch(step) {
@@ -178,7 +179,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
     erectileDysfunction: Array(6).fill(0),
     phq9: Array(9).fill(0),
     phq9Difficulty: 0,
-    medas: Array(14).fill(-1)
+    medas: Array(8).fill(-1)
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -572,21 +573,9 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                   <label className="block text-sm font-bold text-slate-700 mb-1">Régimen de Afiliación *</label>
                   <select value={formData.affiliation} onChange={e => setFormData({...formData, affiliation: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
                     <option value="">Seleccione...</option>
-                    <option value="01 - Contributivo">01 - Contributivo</option>
-                    <option value="02 - Subsidiado">02 - Subsidiado</option>
-                    <option value="03 - Vinculado">03 - Vinculado</option>
-                    <option value="04 - Particular">04 - Particular</option>
-                    <option value="05 - Excepción (Fuerzas Militares)">05 - Excepción (Fuerzas Militares)</option>
-                    <option value="06 - Excepción (Policía Nacional)">06 - Excepción (Policía Nacional)</option>
-                    <option value="07 - Excepción (Magisterio - FOMAG)">07 - Excepción (Magisterio - FOMAG)</option>
-                    <option value="08 - Excepción (ECOPETROL)">08 - Excepción (ECOPETROL)</option>
-                    <option value="09 - Excepción (Universidades Públicas)">09 - Excepción (Universidades Públicas)</option>
-                    <option value="10 - Especial (Congreso)">10 - Especial (Congreso)</option>
-                    <option value="11 - Especial (Banco de la República)">11 - Especial (Banco de la República)</option>
-                    <option value="12 - Especial (DIAN)">12 - Especial (DIAN)</option>
-                    <option value="13 - Especial (Magistratura)">13 - Especial (Magistratura)</option>
-                    <option value="14 - Especial (CTI)">14 - Especial (CTI)</option>
-                    <option value="15 - Especial (INPEC)">15 - Especial (INPEC)</option>
+                    {REGIMEN_AFILIACION.map(r => (
+                      <option key={r.code} value={r.label}>{r.label}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -594,44 +583,21 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                   <select value={formData.eps} onChange={e => setFormData({...formData, eps: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
                     <option value="">Seleccione...</option>
                     <optgroup label="Régimen Contributivo">
-                      <option value="Aliansalud EPS">Aliansalud EPS</option>
-                      <option value="Compensar EPS">Compensar EPS</option>
-                      <option value="Coosalud EPS">Coosalud EPS</option>
-                      <option value="EPS Sanitas">EPS Sanitas</option>
-                      <option value="EPS Sura">EPS Sura</option>
-                      <option value="Famisanar">Famisanar</option>
-                      <option value="Nueva EPS">Nueva EPS</option>
-                      <option value="Salud Total EPS">Salud Total EPS</option>
-                      <option value="SOS EPS">SOS EPS</option>
+                      {EPS_LIST.filter(e => e.group === 'Contributivo').map(e => (
+                        <option key={e.code} value={e.name}>{e.name}</option>
+                      ))}
                     </optgroup>
                     <optgroup label="Régimen Subsidiado">
-                      <option value="Asmet Salud">Asmet Salud</option>
-                      <option value="Cajacopi EPS">Cajacopi EPS</option>
-                      <option value="Capital Salud">Capital Salud</option>
-                      <option value="Capresoca EPS">Capresoca EPS</option>
-                      <option value="Comfachoco">Comfachoco</option>
-                      <option value="Comfaguajira">Comfaguajira</option>
-                      <option value="Comfaoriente">Comfaoriente</option>
-                      <option value="Comfasucre">Comfasucre</option>
-                      <option value="Coosalud EPS (Subsidiado)">Coosalud EPS (Subsidiado)</option>
-                      <option value="Dusakawi">Dusakawi</option>
-                      <option value="Ecoopsos">Ecoopsos</option>
-                      <option value="Emssanar">Emssanar</option>
-                      <option value="Mallamas">Mallamas</option>
-                      <option value="Mutual Ser">Mutual Ser</option>
-                      <option value="Pijaos Salud">Pijaos Salud</option>
-                      <option value="Savia Salud">Savia Salud</option>
+                      {EPS_LIST.filter(e => e.group === 'Subsidiado').map(e => (
+                        <option key={e.code} value={e.name}>{e.name}</option>
+                      ))}
                     </optgroup>
-                    <optgroup label="Excepción / Especial">
-                      <option value="FFMM (Fuerzas Militares)">FFMM (Fuerzas Militares)</option>
-                      <option value="Policía Nacional">Policía Nacional</option>
-                      <option value="Magisterio (FOMAG)">Magisterio (FOMAG)</option>
-                      <option value="ECOPETROL">ECOPETROL</option>
-                      <option value="Universidad Pública">Universidad Pública</option>
-                      <option value="INPEC">INPEC</option>
+                    <optgroup label="Régimen de Excepción y Especial">
+                      {EPS_LIST.filter(e => e.group === 'Excepción y Especial').map(e => (
+                        <option key={e.code} value={e.name}>{e.name}</option>
+                      ))}
                     </optgroup>
                     <option value="No asegurado">No asegurado</option>
-                    <option value="Otra">Otra</option>
                   </select>
                 </div>
                 <div>
@@ -639,16 +605,9 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                   <select value={formData.prepaid} onChange={e => setFormData({...formData, prepaid: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
                     <option value="">Seleccione...</option>
                     <option value="No aplica">No aplica</option>
-                    <option value="Allianz">Allianz</option>
-                    <option value="AXA Colpatria">AXA Colpatria</option>
-                    <option value="Colsanitas">Colsanitas</option>
-                    <option value="Compensar">Compensar</option>
-                    <option value="Coomeva">Coomeva</option>
-                    <option value="Medisanitas">Medisanitas</option>
-                    <option value="Medplus">Medplus</option>
-                    <option value="Seguros Bolívar">Seguros Bolívar</option>
-                    <option value="Sura">Sura</option>
-                    <option value="Otra">Otra</option>
+                    {PREPAGADAS_LIST.map(p => (
+                      <option key={p.code} value={p.name}>{p.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -656,13 +615,9 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                   <select value={formData.complementary} onChange={e => setFormData({...formData, complementary: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
                     <option value="">Seleccione...</option>
                     <option value="No aplica">No aplica</option>
-                    <option value="Compensar">Compensar</option>
-                    <option value="Famisanar">Famisanar</option>
-                    <option value="Nueva EPS">Nueva EPS</option>
-                    <option value="Salud Total">Salud Total</option>
-                    <option value="Sanitas">Sanitas</option>
-                    <option value="Sura">Sura</option>
-                    <option value="Otra">Otra</option>
+                    {PLAN_COMPLEMENTARIO_LIST.map(p => (
+                      <option key={p.code} value={p.name}>{p.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -671,18 +626,18 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         );
       case 4:
         const mspssQuestions = [
-          "Hay una persona especial con quien puedo compartir mis alegrías y tristezas.",
-          "Tengo a alguien que es una verdadera fuente de consuelo para mí.",
-          "Mi familia trata de ayudarme de verdad.",
-          "Consigo la ayuda y el apoyo emocional que necesito de mi familia.",
-          "Tengo una persona especial que me consuela cuando lo necesito.",
-          "Mis amigos intentan ayudarme de verdad.",
-          "Puedo contar con mis amigos cuando las cosas van mal.",
-          "Puedo hablar de mis problemas con mi familia.",
-          "Tengo amigos con los que puedo compartir mis alegrías y tristezas.",
-          "Hay una persona especial en mi vida que se preocupa por mis sentimientos.",
-          "Mi familia está dispuesta a ayudarme a tomar decisiones.",
-          "Puedo hablar de mis problemas con mis amigos."
+          "Hay una persona especial que está cerca mío cuando la necesito",
+          "Hay una persona especial con quien puedo compartir alegrías y tristezas",
+          "Mi familia realmente trata de ayudarme",
+          "Recibo la ayuda emocional y apoyo que necesito de mi familia",
+          "Tengo una persona especial que es una verdadera fuente de consuelo para mí",
+          "Mis amigos/as realmente tratan de ayudarme",
+          "Puedo contar con mis amigos/as cuando las cosas van mal",
+          "Puedo hablar con mi familia de mis problemas",
+          "Tengo amigos/as con los que puedo compartir alegrías y tristezas",
+          "Hay una persona especial en mi vida a quien le importan mis sentimientos",
+          "Mi familia está dispuesta a ayudarme a tomar decisiones",
+          "Puedo hablar con mis amigos/as de mis problemas"
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -734,19 +689,19 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         );
       case 5:
         const hesQuestions = [
-          "Para mí es fácil entender la información de salud.",
-          "Entiendo bien las instrucciones del médico o farmacéutico.",
-          "Me resulta fácil encontrar información sobre salud.",
-          "Puedo evaluar si la información de salud es confiable.",
-          "Sé dónde conseguir ayuda si no entiendo algo sobre mi salud.",
-          "Puedo usar la información de salud para tomar decisiones.",
-          "Me siento seguro/a al hablar con los profesionales de salud.",
-          "Puedo seguir las instrucciones sobre cómo tomar mis medicamentos."
+          "Sé muy bien con qué parte(s) del cuidado de mi salud no estoy satisfecho",
+          "Soy capaz de alcanzar mis metas de salud mediante planes concretos de acción",
+          "Tengo diferentes maneras de superar los obstáculos para lograr mis objetivos de salud",
+          "Tener salud me hace sentir mejor",
+          "Puedo afrontar el estrés por mis problemas de salud de manera positiva",
+          "Puedo solicitar ayuda para cuidar y mantener mi salud cuando lo necesito",
+          "Reconozco lo que me motiva para cuidar mi salud",
+          "Me conozco lo suficiente para escoger lo que más conviene a mi salud"
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Alfabetización en Salud (HES)
+              <Activity className="w-6 h-6 text-blue-600" /> Empoderamiento en Salud (HES)
             </h2>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
               {hesQuestions.map((q, idx) => (
@@ -976,7 +931,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
           "¿Con qué frecuencia deja de tomar sus medicinas cuando se encuentra mejor?",
           "¿Con qué frecuencia deja de tomar sus medicinas cuando se encuentra mal?",
           "¿Con qué frecuencia deja de tomar sus medicinas por descuido?",
-          "¿Con qué frecuencia cambia la dosis de su medicación y la adapta a sus necesidades?",
+          "¿Con qué frecuencia cambia la dosis de su medicación y la adapta a sus necesidades (por ejemplo, cuando se toma más o menos pastillas de las que debería)?",
           "¿Con qué frecuencia olvida tomar sus medicinas cuando debe tomarlas más de una vez al día?",
           "¿Con qué frecuencia retrasa ir a recoger sus medicinas de la farmacia porque cuestan demasiado dinero?",
           "¿Con qué frecuencia planifica recoger de la farmacia sus medicinas antes de que se le acaben?"
@@ -1340,85 +1295,103 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             </div>
           </div>
         );
-      case 16:
+      case 16: {
+        const activityBuckets = [
+          { label: "0 minutos", value: "0" },
+          { label: "1 a 29 minutos", value: "15" },
+          { label: "30 a 59 minutos", value: "45" },
+          { label: "60 a 89 minutos (1-1.4 horas)", value: "75" },
+          { label: "90 a 119 minutos (1.5-1.9 horas)", value: "105" },
+          { label: "120 a 149 minutos (2-2.4 horas)", value: "135" },
+          { label: "Mayor o igual a 150 minutos (2.5 horas)", value: "150" },
+        ];
+        const sleepBuckets = [
+          { label: "Menos de 4 horas (críticamente bajo)", value: "3.5" },
+          { label: "De 4 a 5 horas (muy bajo)", value: "4.5" },
+          { label: "De 5 a 6 horas (subóptimo)", value: "5.5" },
+          { label: "De 6 a 7 horas (levemente reducido)", value: "6.5" },
+          { label: "De 7 a 9 horas (óptimo)", value: "8" },
+          { label: "De 9 a 10 horas (levemente prolongado)", value: "9.5" },
+          { label: "Más de 10 horas (subóptimo)", value: "11" },
+        ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[60vh] overflow-y-auto pr-2">
             <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
               <Dumbbell className="w-6 h-6 text-blue-600" /> Actividad Física y Sueño
             </h2>
-            
-            <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 mt-8">
-              <p className="text-slate-600 font-medium mb-4">En promedio, ¿cuántos minutos a la semana dedica a actividades físicas moderadas o vigorosas?</p>
-              <div className="flex justify-center mb-8 items-end gap-2">
-                <input 
-                  type="number" 
-                  min="0"
-                  max="1000"
-                  value={formData.activity} 
-                  onChange={e => setFormData({...formData, activity: e.target.value})} 
-                  className="text-5xl font-black text-blue-600 bg-transparent border-b-2 border-blue-200 focus:border-blue-600 outline-none w-32 text-center"
-                />
-                <span className="text-xl text-slate-400 mb-2">min</span>
-              </div>
-              <input 
-                type="range" min="0" max="300" step="15" 
-                value={Number(formData.activity) > 300 ? 300 : (formData.activity || 0)}
-                onChange={e => setFormData({...formData, activity: e.target.value})} 
-                className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <div className="flex justify-between text-xs font-bold text-slate-400 mt-4">
-                <span>0</span>
-                <span>150</span>
-                <span>300+</span>
+
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <p className="text-slate-700 font-bold mb-4">En promedio, ¿cuántos minutos a la semana dedica a actividades físicas moderadas o vigorosas? (caminar rápido, montar bicicleta, nadar, correr, etc.)</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {activityBuckets.map(b => (
+                  <label
+                    key={b.value}
+                    className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all text-sm ${
+                      formData.activity === b.value
+                        ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="activity"
+                      value={b.value}
+                      checked={formData.activity === b.value}
+                      onChange={() => setFormData({...formData, activity: b.value})}
+                      className="hidden"
+                    />
+                    {b.label}
+                  </label>
+                ))}
               </div>
             </div>
 
-            <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 mt-8">
-              <p className="text-slate-600 font-medium mb-4">En promedio, ¿cuántas horas duerme por noche?</p>
-              <div className="flex justify-center mb-8 items-end gap-2">
-                <input 
-                  type="number" 
-                  min="0"
-                  max="24"
-                  step="0.5"
-                  value={formData.sleep} 
-                  onChange={e => setFormData({...formData, sleep: e.target.value})} 
-                  className="text-5xl font-black text-blue-600 bg-transparent border-b-2 border-blue-200 focus:border-blue-600 outline-none w-32 text-center"
-                />
-                <span className="text-xl text-slate-400 mb-2">hrs</span>
-              </div>
-              <input 
-                type="range" min="3" max="12" step="0.5" 
-                value={formData.sleep || 3} 
-                onChange={e => setFormData({...formData, sleep: e.target.value})} 
-                className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <div className="flex justify-between text-xs font-bold text-slate-400 mt-4">
-                <span>3h</span>
-                <span>8h</span>
-                <span>12h</span>
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <p className="text-slate-700 font-bold mb-4">En promedio, ¿cuántas horas duerme por noche?</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {sleepBuckets.map(b => (
+                  <label
+                    key={b.value}
+                    className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all text-sm ${
+                      formData.sleep === b.value
+                        ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="sleep"
+                      value={b.value}
+                      checked={formData.sleep === b.value}
+                      onChange={() => setFormData({...formData, sleep: b.value})}
+                      className="hidden"
+                    />
+                    {b.label}
+                  </label>
+                ))}
               </div>
             </div>
           </div>
         );
+      }
       case 17:
         const phq9Questions = [
-          "Tener poco interés o placer en hacer las cosas",
-          "Sentirse desanimado/a, deprimido/a o sin esperanza",
-          "Tener problemas para dormir o mantenerse dormido/a, o dormir demasiado",
-          "Sentirse cansado/a o tener poca energía",
-          "Tener poco apetito o comer en exceso",
-          "Sentirse mal consigo mismo/a, o sentir que es un fracaso o que ha decepcionado a su familia",
-          "Tener dificultad para concentrarse en cosas tales como leer el periódico o ver la televisión",
-          "Moverse o hablar tan lentamente que otras personas lo podrían haber notado. O lo contrario, estar tan inquieto/a o agitado/a que se ha estado moviendo mucho más de lo normal",
-          "Pensar que estaría mejor muerto/a o que le gustaría lastimarse de alguna manera"
+          "Poco interés o placer en hacer las cosas",
+          "Se ha sentido decaído(a), deprimido(a) o sin esperanzas",
+          "Ha tenido dificultad para quedarse o permanecer dormido(a), o ha dormido demasiado",
+          "Se ha sentido cansado(a) o con poca energía",
+          "Sin apetito o ha comido en exceso",
+          "Se ha sentido mal con usted mismo(a) - o que es un fracaso o que ha quedado mal con usted mismo(a) o con su familia",
+          "Ha tenido dificultad para concentrarse en ciertas actividades, tales como leer el periódico o ver la televisión",
+          "¿Se ha movido o hablado tan lento que otras personas podrían haberlo notado? - o lo contrario - muy inquieto(a) o agitado(a) que ha estado moviéndose mucho más de lo normal",
+          "Pensamientos de que estaría mejor muerto(a) o de lastimarse de alguna manera"
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
               <Activity className="w-6 h-6 text-blue-600" /> Salud Mental (PHQ-9)
             </h2>
-            <p className="text-slate-600 font-medium">Durante las últimas 2 semanas, ¿con qué frecuencia le han molestado los siguientes problemas?</p>
+            <p className="text-slate-600 font-medium">Durante las últimas 2 semanas, ¿qué tan a menudo le han afectado alguno de los siguientes problemas?</p>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
               {phq9Questions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -1458,10 +1431,10 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               ))}
               {formData.phq9.some(v => v > 0) && (
                 <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-sm mt-8">
-                  <p className="font-bold text-slate-700 mb-4">Si marcó cualquier problema, ¿qué tan difícil se le ha hecho hacer su trabajo, encargarse de las cosas de la casa o llevarse bien con otras personas debido a estos problemas?</p>
+                  <p className="font-bold text-slate-700 mb-4">Si marcó cualquiera de los problemas, ¿qué tanta dificultad le han dado estos problemas para hacer su trabajo, encargarse de las tareas del hogar, o llevarse bien con las personas?</p>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                     {[
-                      { val: 0, label: 'Nada difícil' },
+                      { val: 0, label: 'No ha sido difícil' },
                       { val: 1, label: 'Un poco difícil' },
                       { val: 2, label: 'Muy difícil' },
                       { val: 3, label: 'Extremadamente difícil' }
@@ -1491,49 +1464,97 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             </div>
           </div>
         );
-      case 18:
-        const medasQuestions = [
-          "¿Usa usted aceite de oliva como principal grasa para cocinar?",
-          "¿Consume 4 o más cucharadas soperas de aceite de oliva al día?",
-          "¿Consume 2 o más raciones de verduras u hortalizas al día?",
-          "¿Consume 3 o más piezas de fruta al día?",
-          "¿Consume menos de 1 ración al día de carnes rojas, hamburguesas, salchichas o embutidos?",
-          "¿Consume menos de 1 ración al día de mantequilla, margarina o nata?",
-          "¿Consume menos de 1 bebida carbonatada y/o azucarada al día?",
-          "¿Consume 7 o más vasos de vino a la semana?",
-          "¿Consume 3 o más raciones de legumbres a la semana?",
-          "¿Consume 3 o más raciones de pescado o mariscos a la semana?",
-          "¿Consume menos de 3 veces a la semana repostería comercial (galletas, bollería, dulces)?",
-          "¿Consume 3 o más veces a la semana frutos secos?",
-          "¿Consume preferentemente carne de pollo, pavo o conejo en vez de ternera, cerdo, hamburguesas o salchichas?",
-          "¿Consume 2 o más veces a la semana vegetales cocinados, pasta, arroz u otros platos aderezados con sofrito?"
+      case 18: {
+        const foodQuestions: { q: string; options: { label: string; val: 0 | 1 | 2 }[] }[] = [
+          {
+            q: "¿Cuántas veces a la semana comió usted comida rápida o golosinas o bocadillos?",
+            options: [
+              { label: "menos de 1", val: 0 },
+              { label: "1-3", val: 1 },
+              { label: "4 o más", val: 2 },
+            ],
+          },
+          {
+            q: "¿Cuántas porciones de frutas comió cada día?",
+            options: [
+              { label: "5 o más", val: 0 },
+              { label: "3-4", val: 1 },
+              { label: "2 o menos", val: 2 },
+            ],
+          },
+          {
+            q: "¿Cuántas porciones de verduras comió cada día?",
+            options: [
+              { label: "5 o más", val: 0 },
+              { label: "3-4", val: 1 },
+              { label: "2 o menos", val: 2 },
+            ],
+          },
+          {
+            q: "¿Cuántas sodas o vasos de té dulce tomó cada día?",
+            options: [
+              { label: "menos de 1", val: 0 },
+              { label: "1-2", val: 1 },
+              { label: "3 o más", val: 2 },
+            ],
+          },
+          {
+            q: "¿Cuántas veces a la semana comió frijoles (pintos o negros), pollo, o pescado?",
+            options: [
+              { label: "3 o más", val: 0 },
+              { label: "1-2", val: 1 },
+              { label: "menos de 1", val: 2 },
+            ],
+          },
+          {
+            q: "¿Cuántas veces a la semana comió papalinas, papas fritas o galletas (no dietéticas)?",
+            options: [
+              { label: "1 o menos", val: 0 },
+              { label: "2-3", val: 1 },
+              { label: "4 o más", val: 2 },
+            ],
+          },
+          {
+            q: "¿Cuántas veces a la semana comió postres y otras golosinas (no dietéticas)?",
+            options: [
+              { label: "1 o menos", val: 0 },
+              { label: "2-3", val: 1 },
+              { label: "4 o más", val: 2 },
+            ],
+          },
+          {
+            q: "¿Cuánta margarina, mantequilla, o grasa de carne usó para sazonar los vegetales, o puso en las papas, carne, o maíz?",
+            options: [
+              { label: "muy poca", val: 0 },
+              { label: "algo de", val: 1 },
+              { label: "mucha", val: 2 },
+            ],
+          },
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Alimentación
+              <Activity className="w-6 h-6 text-blue-600" /> Evaluación de alimentación
             </h2>
+            <p className="text-slate-600 font-medium">Menor puntaje = mejor patrón alimentario.</p>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
-              {medasQuestions.map((q, idx) => (
+              {foodQuestions.map((item, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                  <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { val: 1, label: 'Sí' },
-                      { val: 0, label: 'No' }
-                    ].map(opt => (
-                      <label 
-                        key={opt.val} 
+                  <p className="font-bold text-slate-700 mb-4">{idx + 1}. {item.q}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    {item.options.map(opt => (
+                      <label
+                        key={opt.val}
                         className={`flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all text-sm font-bold text-center ${
-                          formData.medas[idx] === opt.val 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700' 
+                          formData.medas[idx] === opt.val
+                            ? 'border-blue-600 bg-blue-50 text-blue-700'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
-                        <input 
-                          type="radio" 
-                          name={`medas_${idx}`} 
-                          value={opt.val} 
+                        <input
+                          type="radio"
+                          name={`food_${idx}`}
+                          value={opt.val}
                           checked={formData.medas[idx] === opt.val}
                           onChange={() => {
                             const newMedas = [...formData.medas];
@@ -1551,6 +1572,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             </div>
           </div>
         );
+      }
       case 19:
         return (
           <div className="flex flex-col items-center justify-center text-center space-y-6 py-12 animate-in fade-in duration-500">

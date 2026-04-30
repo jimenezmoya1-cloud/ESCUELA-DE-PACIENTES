@@ -101,7 +101,12 @@ export const calcularPuntajeExacto = (
       return reglaDeTresRango(valor, 12, 84, 0, 100)
 
     case 'Alimentación':
-      return reglaDeTresRango(valor, 0, 14, 0, 100)
+      // Escala 8 ítems × 0-2 puntos (rango 0-16). Menor puntaje = mejor patrón alimentario.
+      // 0-1 → óptimo (100), 2-3 → bueno (~80), 4-9 → moderado (~50), 10-16 → inadecuado (alerta).
+      if (valor <= 1) return 100
+      if (valor <= 3) return reglaDeTresRango(valor, 2, 3, 79, 60)
+      if (valor <= 9) return reglaDeTresRango(valor, 4, 9, 59, 40)
+      return reglaDeTresRango(valor, 10, 16, 39, 0)
 
     case 'Colesterol':
       if (valor < 100) return 100
