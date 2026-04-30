@@ -1,32 +1,39 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { headers } from "next/headers"
+import { getCurrentProfile, isStaff, isClinico } from "@/lib/auth/profile"
 import AdminShell from "@/components/admin/AdminShell"
 
 export const dynamic = "force-dynamic"
+
+// Rutas permitidas para clínicos
+const CLINICO_ALLOWED_PREFIXES = ["/admin/pacientes", "/admin/clinico"]
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const profile = await getCurrentProfile()
 
-  if (!user) {
+  if (!profile) {
     redirect("/login")
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", user.id)
-    .single()
-
-  if (!profile || profile.role !== "admin") {
+  if (!isStaff(profile)) {
     redirect("/mi-camino")
   }
 
+  // Enforcement de rutas para clinico
+  if (isClinico(profile)) {
+    const headersList = await headers()
+    const pathname = headersList.get("x-pathname") ?? headersList.get("x-invoke-path") ?? ""
+    const allowed = CLINICO_ALLOWED_PREFIXES.some((p) => pathname.startsWith(p))
+    if (!allowed && pathname !== "") {
+      redirect("/admin/clinico/dashboard")
+    }
+  }
+
   return (
-    <AdminShell adminName={profile.name}>{children}</AdminShell>
+    <AdminShell profile={profile}>{children}</AdminShell>
   )
 }
