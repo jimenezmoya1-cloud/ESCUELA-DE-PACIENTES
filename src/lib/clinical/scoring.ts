@@ -14,6 +14,11 @@ export const reglaDeTresRango = (
   return Math.round(resultado)
 }
 
+// ============================================================
+// Cálculo de puntajes alineado al documento técnico CAIMED
+// (LÓGICA, ORIGEN DE DATOS Y MODELO DE ATENCIÓN — secciones 2 y 3).
+// Cualquier modificación debe mantenerse coherente con ese documento.
+// ============================================================
 export const calcularPuntajeExacto = (
   nombreComponente: string,
   valor: number,
@@ -23,19 +28,25 @@ export const calcularPuntajeExacto = (
 
   switch (nombreComponente) {
     case 'Empoderamiento':
-      return reglaDeTresRango(valor, 8, 40, 0, 100)
+      // Doc: 30-40 verde, 19-29 amarillo, <19 rojo (rango 8-40).
+      if (valor < 19) return reglaDeTresRango(valor, 8, 18.99, 0, 50)
+      if (valor <= 29) return reglaDeTresRango(valor, 19, 29, 51, 79)
+      return reglaDeTresRango(valor, 30, 40, 80, 100)
 
     case 'Adherencia a medicamentos':
+      // Doc: 12-23 verde (buena), 24-35 amarillo, 36-48 rojo. Escala inversa.
       if (valor <= 23) return reglaDeTresRango(valor, 12, 23, 100, 80)
       if (valor <= 35) return reglaDeTresRango(valor, 24, 35, 79, 51)
       return reglaDeTresRango(valor, 36, 48, 50, 0)
 
     case 'Acceso a medicamentos':
+      // Doc: 1=Total verde, 2=Parcial amarillo, 3=Negación rojo.
       if (valor === 1) return 100
       if (valor === 2) return 65
       return 25
 
     case 'Peso': {
+      // Doc: lógica piramidal con TARGET_BMI 21.7.
       const TARGET_BMI = 21.7
       if (valor < TARGET_BMI) {
         if (valor <= 18.4) return reglaDeTresRango(valor, 13.0, 18.4, 0, 50)
@@ -47,16 +58,19 @@ export const calcularPuntajeExacto = (
     }
 
     case 'Presión arterial':
+      // Doc: <120 verde, 120-129 amarillo, ≥130 rojo (sistólica).
       if (valor < 120) return reglaDeTresRango(valor, 90, 119, 100, 80)
       if (valor <= 129) return reglaDeTresRango(valor, 120, 129, 79, 51)
-      return reglaDeTresRango(valor, 130, 160, 50, 0)
+      return reglaDeTresRango(valor, 130, 200, 50, 0)
 
     case 'Glucosa':
       if (!contexto.isDM2) {
-        if (valor < 5.7) return reglaDeTresRango(valor, 4.0, 5.6, 100, 80)
-        if (valor <= 7.9) return reglaDeTresRango(valor, 5.7, 7.9, 79, 51)
-        return reglaDeTresRango(valor, 8.0, 12.0, 50, 0)
+        // Doc paciente sano: <5.7 verde, 5.7-6.4 amarillo (prediabetes), ≥6.5 rojo.
+        if (valor < 5.7) return reglaDeTresRango(valor, 4.0, 5.69, 100, 80)
+        if (valor <= 6.4) return reglaDeTresRango(valor, 5.7, 6.4, 79, 51)
+        return reglaDeTresRango(valor, 6.5, 12.0, 50, 0)
       } else {
+        // Doc DM2: meta base 6.0-7.0 verde, ajustes por edad y pluripatología.
         if (contexto.isPocaExpectativa) return 100
         let limiteVerdeInf = 6.0
         let limiteVerdeSup = 7.0
@@ -77,46 +91,66 @@ export const calcularPuntajeExacto = (
       }
 
     case 'Actividad física':
+      // Doc: ≥120 min/sem verde, 60-119 amarillo, <60 rojo.
       if (valor >= 120) return reglaDeTresRango(valor, 120, 300, 80, 100)
       if (valor >= 60) return reglaDeTresRango(valor, 60, 119, 51, 79)
       return reglaDeTresRango(valor, 0, 59, 0, 50)
 
     case 'Sueño':
+      // Doc: 7-9 h verde, 6-7 / 9-10 amarillo, <6 ó >10 rojo.
       if (valor >= 7 && valor <= 9) return 100
-      if (valor >= 6 && valor < 7) return reglaDeTresRango(valor, 6, 6.9, 51, 79)
-      if (valor > 9 && valor <= 10) return reglaDeTresRango(valor, 9.1, 10, 79, 51)
-      if (valor < 6) return reglaDeTresRango(valor, 3, 5.9, 0, 50)
-      return reglaDeTresRango(valor, 10.1, 12, 50, 0)
+      if (valor >= 6 && valor < 7) return reglaDeTresRango(valor, 6, 6.99, 51, 79)
+      if (valor > 9 && valor <= 10) return reglaDeTresRango(valor, 9.01, 10, 79, 51)
+      if (valor < 6) return reglaDeTresRango(valor, 3, 5.99, 0, 50)
+      return reglaDeTresRango(valor, 10.01, 12, 50, 0)
 
     case 'Nicotina':
-      if (valor === 1) return 100
-      if (valor === 2) return 75
-      if (valor === 3) return 60
-      if (valor === 4) return 25
-      if (valor === 5) return 0
-      if (valor === 6) return 60
+      // Doc: nunca/ex>5a verde, vapeador/humo 2da mano amarillo, fumador rojo.
+      // Mapeo del cuestionario:
+      //   1 = no fumador, 2 = ex >5 años, 3 = ex 1-5 años, 4 = ex <1 año,
+      //   5 = fumador actual cigarrillo, 6 = fumador electrónico/vapeador.
+      if (valor === 1) return 100 // verde
+      if (valor === 2) return 90  // verde (ex ≥5a)
+      if (valor === 3) return 70  // amarillo (ex 1-5a)
+      if (valor === 4) return 55  // amarillo (ex <1a, riesgo de recaída)
+      if (valor === 5) return 0   // rojo (fumador actual)
+      if (valor === 6) return 60  // amarillo (vapeador / humo 2da mano)
       return 0
 
     case 'Red de apoyo':
-      return reglaDeTresRango(valor, 12, 84, 0, 100)
+      // Doc: promedio Likert 1-7. 5.1-7 verde, 3-5 amarillo, 1-2.9 rojo.
+      // El cuestionario guarda la SUMA de 12 ítems (rango 12-84). Cortes equivalentes:
+      //   suma <36 (prom <3) → rojo
+      //   suma 36-60 (prom 3-5) → amarillo
+      //   suma >60 (prom >5) → verde
+      if (valor < 36) return reglaDeTresRango(valor, 12, 35.99, 0, 50)
+      if (valor <= 60) return reglaDeTresRango(valor, 36, 60, 51, 79)
+      return reglaDeTresRango(valor, 60.01, 84, 80, 100)
 
     case 'Alimentación':
-      // Escala 8 ítems × 0-2 puntos (rango 0-16). Menor puntaje = mejor patrón alimentario.
-      // 0-1 → óptimo (100), 2-3 → bueno (~80), 4-9 → moderado (~50), 10-16 → inadecuado (alerta).
-      if (valor <= 1) return 100
-      if (valor <= 3) return reglaDeTresRango(valor, 2, 3, 79, 60)
-      if (valor <= 9) return reglaDeTresRango(valor, 4, 9, 59, 40)
-      return reglaDeTresRango(valor, 10, 16, 39, 0)
+      // Doc: escala inversa 0-16. 0-3 verde, 4-9 amarillo, ≥10 rojo.
+      if (valor <= 3) return reglaDeTresRango(valor, 0, 3, 100, 80)
+      if (valor <= 9) return reglaDeTresRango(valor, 4, 9, 79, 51)
+      return reglaDeTresRango(valor, 10, 16, 50, 0)
 
     case 'Colesterol':
-      if (valor < 100) return 100
-      if (valor <= 129) return reglaDeTresRango(valor, 100, 129, 79, 51)
-      return reglaDeTresRango(valor, 130, 160, 50, 0)
+      // Doc: lógica diferencial por SCA (sección 2A).
+      // Sano:    <130 verde, 130-159 amarillo, ≥160 rojo.
+      // SCA 2°:  ≤55 verde, 56-69 amarillo, ≥70 rojo.
+      if (contexto.isSCA) {
+        if (valor <= 55) return reglaDeTresRango(valor, 0, 55, 100, 80)
+        if (valor <= 69) return reglaDeTresRango(valor, 56, 69, 79, 51)
+        return reglaDeTresRango(valor, 70, 200, 50, 0)
+      }
+      if (valor < 130) return reglaDeTresRango(valor, 50, 129, 100, 80)
+      if (valor <= 159) return reglaDeTresRango(valor, 130, 159, 79, 51)
+      return reglaDeTresRango(valor, 160, 250, 50, 0)
 
     case 'Salud mental':
-      if (valor <= 4) return 100
-      if (valor <= 9) return reglaDeTresRango(valor, 5, 9, 79, 51)
-      return reglaDeTresRango(valor, 10, 27, 50, 0)
+      // Doc PHQ-9: 0-4 mínima verde, 5-14 leve/moderada amarillo, ≥15 severa rojo.
+      if (valor <= 4) return reglaDeTresRango(valor, 0, 4, 100, 80)
+      if (valor <= 14) return reglaDeTresRango(valor, 5, 14, 79, 51)
+      return reglaDeTresRango(valor, 15, 27, 50, 0)
 
     default:
       return 0
