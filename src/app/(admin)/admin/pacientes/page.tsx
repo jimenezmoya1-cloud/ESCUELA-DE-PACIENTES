@@ -4,6 +4,8 @@ import { calculateProgress, formatDate } from "@/lib/modules"
 import UserAccessToggle from "@/components/admin/UserAccessToggle"
 import NewPatientButton from "@/components/admin/NewPatientButton"
 import ClinicalExportButton from "@/components/admin/ClinicalExportButton"
+import ClinicalBackupPanel, { type BackupLogRow } from "@/components/admin/ClinicalBackupPanel"
+import { getCurrentProfile, isAdmin } from "@/lib/auth/profile"
 
 interface Patient {
   id: string
@@ -157,12 +159,15 @@ export default async function PacientesPage({
   if (convenio && convenio !== "todos") query = query.eq("convenio_code", convenio)
   if (cedula?.trim()) query = query.ilike("cedula", `%${cedula.trim()}%`)
 
+  const currentProfile = await getCurrentProfile()
+
   const [
     { data: patients },
     { data: modules },
     { data: allCompletions },
     { data: convenios },
     { data: staff },
+    { data: backupLogs },
   ] = await Promise.all([
     query,
     supabase.from("modules").select("id").eq("is_published", true),
@@ -174,6 +179,11 @@ export default async function PacientesPage({
       .in("role", ["admin", "clinico"])
       .eq("is_active", true)
       .order("name"),
+    supabase
+      .from("backup_logs")
+      .select("id, triggered_at, triggered_by, status, file_url, rows_exported, error_message, duration_ms")
+      .order("triggered_at", { ascending: false })
+      .limit(10),
   ])
 
   const totalModules = modules?.length ?? 0
@@ -212,6 +222,13 @@ export default async function PacientesPage({
         <ClinicalExportButton
           convenios={convenios ?? []}
           staff={(staff ?? []) as { id: string; name: string }[]}
+        />
+      </div>
+
+      <div className="mb-6">
+        <ClinicalBackupPanel
+          initialLogs={(backupLogs ?? []) as BackupLogRow[]}
+          isAdmin={isAdmin(currentProfile)}
         />
       </div>
 
