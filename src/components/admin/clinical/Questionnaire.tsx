@@ -262,11 +262,17 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
     const salud_mental = formData.phq9.reduce((a, b) => a + b, 0);
 
     const params = new URLSearchParams({
+      // Demográficos + datos personales
       nombre,
+      primer_nombre: formData.firstName,
+      segundo_nombre: formData.secondName,
+      primer_apellido: formData.firstLastName,
+      segundo_apellido: formData.secondLastName,
       doc,
       tipo_doc: formData.docType,
       fecha_nac,
       sexo: formData.gender,
+      genero: formData.gender,
       telefono: formData.phone,
       correo: formData.email,
       pais_nacimiento: formData.birthCountry,
@@ -281,10 +287,13 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       eps: formData.eps,
       prepagada: formData.prepaid,
       plan_complementario: formData.complementary,
+      // Banderas clínicas
       sca: sca.toString(),
       dm2: dm2.toString(),
       comorbidities: hasComorbidities.toString(),
-      peso: peso.toFixed(1),
+      antecedentes: (formData.diseases ?? []).join(', '),
+      // Componentes scoreados (ya agregados — entran al algoritmo)
+      peso: peso.toFixed(1), // IMC computado
       nicotina: nicotina.toString(),
       actividad: actividad.toString(),
       sueno: sueno.toString(),
@@ -297,7 +306,27 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       alimentacion: alimentacion.toString(),
       colesterol: formData.paraclinics.ldl.toString(),
       salud_mental: salud_mental.toString(),
-      takesMeds: formData.takesMeds ? 'true' : 'false'
+      takesMeds: formData.takesMeds ? 'true' : 'false',
+      // ───────────── Campos crudos extra (para export Excel y trazabilidad) ─────────────
+      // Signos vitales completos
+      pad: formData.vitalSigns.pad.toString(),
+      hr: formData.vitalSigns.hr.toString(),
+      rr: formData.vitalSigns.rr.toString(),
+      spo2: formData.vitalSigns.spo2.toString(),
+      temp: formData.vitalSigns.temp.toString(),
+      // Antropometría real
+      talla: formData.height.toString(),
+      peso_kg: formData.weight.toString(),
+      // Paraclínicos completos
+      lipid_date: formData.paraclinics.lipidDate,
+      colesterol_total: formData.paraclinics.totalChol.toString(),
+      hdl: formData.paraclinics.hdl.toString(),
+      triglicéridos: formData.paraclinics.triglycerides.toString(),
+      hba1c_date: formData.paraclinics.hba1cDate,
+      // Acceso a medicamentos: motivo (códigoo numérico)
+      med_access_reason: formData.medAccessReason.toString(),
+      // Tabaquismo crudo
+      smoked: formData.smoked ? 'true' : 'false',
     });
 
     return `${window.location.origin}/?${params.toString()}`;
