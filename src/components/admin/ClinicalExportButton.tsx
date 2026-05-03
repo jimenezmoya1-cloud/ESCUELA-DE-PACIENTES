@@ -17,16 +17,23 @@ export default function ClinicalExportButton({ convenios, staff }: Props) {
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
 
+  // El <input type="date"> devuelve "YYYY-MM-DD" sin zona. Lo interpretamos
+  // como hora LOCAL (Colombia) para que el rango cubra el día completo
+  // del calendario del usuario, no día UTC.
+  function localDateToISO(ymd: string, endOfDay: boolean): string {
+    const [y, m, d] = ymd.split("-").map(Number)
+    const date = endOfDay
+      ? new Date(y, m - 1, d, 23, 59, 59, 999)
+      : new Date(y, m - 1, d, 0, 0, 0, 0)
+    return date.toISOString()
+  }
+
   function buildHref(): string {
     const params = new URLSearchParams()
     if (convenio !== "todos") params.set("convenio", convenio)
     if (doctor !== "todos") params.set("doctor", doctor)
-    if (startDate) params.set("startDate", new Date(startDate).toISOString())
-    if (endDate) {
-      const end = new Date(endDate)
-      end.setHours(23, 59, 59, 999)
-      params.set("endDate", end.toISOString())
-    }
+    if (startDate) params.set("startDate", localDateToISO(startDate, false))
+    if (endDate) params.set("endDate", localDateToISO(endDate, true))
     const qs = params.toString()
     return `/api/admin/export-clinical-excel${qs ? `?${qs}` : ""}`
   }
