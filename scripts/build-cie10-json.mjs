@@ -21,7 +21,7 @@ function normalize(s) {
   return String(s ?? "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "");
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 const wb = XLSX.readFile(XLSX_PATH);
