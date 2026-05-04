@@ -91,6 +91,10 @@ export default function ClinicalHistoryClient({
     const raw = initialAssessment?.raw_questionnaire as Record<string, unknown> | null | undefined
     return raw?.takesMeds !== 'false'
   })
+  const [iiefAplica] = useState<boolean>(() => {
+    const raw = initialAssessment?.raw_questionnaire as Record<string, unknown> | null | undefined
+    return raw?.iief_aplica === 'true'
+  })
   const [edadCalculada, setEdadCalculada] = useState(0)
 
   useEffect(() => {
@@ -99,13 +103,11 @@ export default function ClinicalHistoryClient({
 
   const valoresKey = componentes.map((c) => c.valor).join("|")
 
-  const componentesVisibles = takesMeds
-    ? componentes
-    : componentes.filter(
-        (c) =>
-          c.nombre !== 'Acceso a medicamentos' &&
-          c.nombre !== 'Adherencia a medicamentos',
-      )
+  const componentesVisibles = componentes.filter((c) => {
+    if (!takesMeds && (c.nombre === 'Acceso a medicamentos' || c.nombre === 'Adherencia a medicamentos')) return false
+    if (!iiefAplica && c.nombre === 'Disfunción eréctil') return false
+    return true
+  })
 
   useEffect(() => {
     const result = recomputeAssessment(componentes, {
@@ -115,11 +117,12 @@ export default function ClinicalHistoryClient({
       isPocaExpectativa,
       edad: edadCalculada,
       takesMeds,
+      iiefAplica,
     })
-    // recomputeAssessment puede devolver menos componentes si filtró Acceso/Adherencia.
+    // recomputeAssessment puede devolver menos componentes si filtró Acceso/Adherencia/Disfunción eréctil.
     // Mergeamos los puntajes recomputados sobre el state completo, preservando los
     // componentes filtrados intactos (con su valor original) para evitar perder data
-    // si algún día se reactivara takesMeds.
+    // si algún día se reactivaran los flags.
     setComponentes((prev) =>
       prev.map((c) => {
         const updated = result.components.find((rc) => rc.nombre === c.nombre)
@@ -128,7 +131,7 @@ export default function ClinicalHistoryClient({
     )
     setPaciente((prev) => ({ ...prev, scoreGlobal: result.scoreGlobal, nivel: result.nivel, metaScore: result.metaScore }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSCA, isDM2, isPluripatologico, isPocaExpectativa, edadCalculada, valoresKey, takesMeds])
+  }, [isSCA, isDM2, isPluripatologico, isPocaExpectativa, edadCalculada, valoresKey, takesMeds, iiefAplica])
 
 
   const handleScoreChange = (nombre: string, nuevoValor: string) => {
