@@ -10,6 +10,8 @@ import TermsModal from './TermsModal';
 import { colombia } from '@/lib/clinical/data/colombia';
 import { countries } from '@/lib/clinical/data/countries';
 import { REGIMEN_AFILIACION, EPS_LIST, PREPAGADAS_LIST, PLAN_COMPLEMENTARIO_LIST } from '@/lib/clinical/data/colombia-health';
+import AntecedentesStep from './AntecedentesStep';
+import type { Cie10Selection } from '@/lib/clinical/data/cie10';
 
 const getCaimedMessage = (step: number) => {
   switch(step) {
@@ -146,6 +148,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
     neckCirc: '',
     waistCirc: '',
     diseases: [] as string[],
+    cie10: [] as Cie10Selection[],
     takesMeds: null as boolean | null,
     medAccess: 0,
     medAccessReason: 0,
@@ -292,6 +295,9 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       dm2: dm2.toString(),
       comorbidities: hasComorbidities.toString(),
       antecedentes: (formData.diseases ?? []).join(', '),
+      antecedentes_cie10: (formData.cie10 ?? [])
+        .map((c) => `${c.code} - ${c.name}`)
+        .join('; '),
       // Componentes scoreados (ya agregados — entran al algoritmo)
       peso: peso.toFixed(1), // IMC computado
       nicotina: nicotina.toString(),
@@ -359,7 +365,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         return formData.firstName && formData.firstLastName && formData.docNumber && formData.dob && formData.email && formData.phone && formData.gender && formData.birthCountry && formData.residenceCountry && (formData.residenceCountry !== 'Colombia' || (formData.residenceDept && formData.residenceMun)) && formData.address && formData.emergencyName && formData.emergencyRelation && formData.emergencyPhone && formData.affiliation && formData.eps && formData.prepaid && formData.complementary;
       case 4: return formData.mspss.every(v => v > 0);
       case 5: return formData.hes.every(v => v > 0);
-      case 6: return formData.diseases.length > 0;
+      case 6: return formData.diseases.length > 0 || formData.cie10.length > 0;
       case 7: return formData.takesMeds !== null;
       case 8: 
         if (formData.takesMeds === false) return true;
@@ -782,84 +788,14 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
           </div>
         );
       case 6:
-        const toggleDisease = (d: string) => {
-          if (d === 'Ninguna' || d === 'No sé qué enfermedad tengo') {
-            setFormData({...formData, diseases: [d]});
-          } else {
-            const newD = formData.diseases.includes(d) 
-              ? formData.diseases.filter(x => x !== d)
-              : [...formData.diseases.filter(x => x !== 'Ninguna' && x !== 'No sé qué enfermedad tengo'), d];
-            setFormData({...formData, diseases: newD});
-          }
-        };
         return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Antecedentes
-            </h2>
-            <p className="text-slate-600 font-medium">¿Tienes diagnóstico de alguna de las siguientes enfermedades?</p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-2">
-              {[
-                { id: 'Diabetes', icon: '🩸' },
-                { id: 'Hipertensión', icon: '💊' },
-                { id: 'Dislipidemia', icon: '🫀' },
-                { id: 'Infarto cardiaco', icon: '⚡' },
-                { id: 'Trombosis cerebral', icon: '🧠' },
-                { id: 'Otra patología cardiaca', icon: '❤️', label: 'Tengo otra patología relacionada con el corazón' },
-                { id: 'Colesterol alto', icon: '🩸' },
-                { id: 'Triglicéridos altos', icon: '🩸' },
-                { id: 'HDL bajo ("colesterol bueno bajo")', icon: '🩸' },
-                { id: 'Prediabetes', icon: '🩸' },
-                { id: 'Azúcar alta en ayunas', icon: '🩸' },
-                { id: 'Resistencia a la insulina', icon: '🩸' },
-                { id: 'Sobrepeso u obesidad', icon: '⚖️' },
-                { id: 'Grasa en el abdomen', icon: '⚖️' },
-                { id: 'Hígado graso', icon: '🩺' },
-                { id: 'Tiroides baja (hipotiroidismo)', icon: '🦋' },
-                { id: 'Tiroides alta (hipertiroidismo)', icon: '🦋' },
-                { id: 'Síndrome de Cushing', icon: '🩺' },
-                { id: 'Presión arterial alta', icon: '💊' },
-                { id: 'Apnea del sueño (ronquido con pausas al respirar)', icon: '😴' },
-                { id: 'Síndrome de ovario poliquístico', icon: '🩺' },
-                { id: 'Menopausia antes de los 40 años', icon: '🩺' },
-                { id: 'Preeclampsia en un embarazo anterior', icon: '🤰' },
-                { id: 'Enfermedad del riñón', icon: '🩺' },
-                { id: 'Proteína en la orina', icon: '🩺' },
-                { id: 'Artritis reumatoide', icon: '🦴' },
-                { id: 'Lupus', icon: '🦋' },
-                { id: 'Psoriasis', icon: '🩺' },
-                { id: 'Colitis o enfermedad de Crohn', icon: '🩺' },
-                { id: 'Anemia crónica', icon: '🩸' },
-                { id: 'VIH', icon: '🩺' },
-                { id: 'Chagas', icon: '🩺' },
-                { id: 'COVID-19 con complicaciones', icon: '🦠' },
-                { id: 'Depresión', icon: '🧠' },
-                { id: 'Trastorno bipolar', icon: '🧠' },
-                { id: 'Esquizofrenia', icon: '🧠' },
-                { id: 'Tratamiento con quimioterapia o radioterapia en el pecho', icon: '☢️' },
-                { id: 'Cáncer activo', icon: '🎗️' },
-                { id: 'Várices con trombosis', icon: '🩸' },
-                { id: 'Trombosis venosa profunda', icon: '🩸' },
-                { id: 'Coágulos recurrentes', icon: '🩸' },
-                { id: 'Ninguna', icon: '❌', label: 'Ninguna de las anteriores' },
-                { id: 'No sé qué enfermedad tengo', icon: '❓' }
-              ].map(d => (
-                <button
-                  key={d.id}
-                  onClick={() => toggleDisease(d.id)}
-                  className={`p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all ${
-                    formData.diseases.includes(d.id) 
-                      ? 'border-blue-600 bg-blue-50 shadow-md' 
-                      : 'border-slate-200 bg-white hover:border-blue-300'
-                  }`}
-                >
-                  <span className="text-2xl">{d.icon}</span>
-                  <span className="font-bold text-slate-700">{d.label || d.id}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <AntecedentesStep
+            diseases={formData.diseases}
+            cie10={formData.cie10}
+            onChange={({ diseases, cie10 }) =>
+              setFormData({ ...formData, diseases, cie10 })
+            }
+          />
         );
       case 7:
         return (

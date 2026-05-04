@@ -2,7 +2,7 @@ import * as XLSX from "xlsx"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 // ============================================================================
-// Builder compartido del Excel clínico (47 columnas + hoja de Catálogos).
+// Builder compartido del Excel clínico (48 columnas + hoja de Catálogos).
 // Lo usan tanto el endpoint manual de descarga como el endpoint de backup
 // automático a Drive — así garantizamos que produzcan exactamente lo mismo.
 // ============================================================================
@@ -147,6 +147,7 @@ export async function buildClinicalExcel(
     "EPS", "Régimen",
     "MSPSS (Red de apoyo)", "HES (Empoderamiento)",
     "Antecedentes",
+    "Antecedentes CIE-10",
     "Toma medicamentos", "Acceso medicamentos", "Razón principal",
     "ARMS (Adherencia)",
     "PA sistólica", "PA diastólica", "FC", "FR", "SatO2",
@@ -205,6 +206,7 @@ export async function buildClinicalExcel(
       num(raw.red_apoyo),
       num(raw.empoderamiento),
       raw.antecedentes ?? "",
+      raw.antecedentes_cie10 ?? "",
       bool01(raw.takesMeds),
       num(raw.acceso),
       num(raw.med_access_reason),
