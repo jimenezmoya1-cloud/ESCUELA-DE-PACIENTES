@@ -189,6 +189,7 @@ export default function ClinicalHistoryClient({
           is_poca_expectativa: isPocaExpectativa,
           alertas_criticas: alertas.criticas,
           alertas_orientadoras: alertas.orientadoras,
+          raw_questionnaire: initialAssessment?.raw_questionnaire ?? undefined,
         })
         setModoEdicion(false)
         router.refresh()
