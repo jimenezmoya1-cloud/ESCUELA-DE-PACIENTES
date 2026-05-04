@@ -12,7 +12,7 @@ import { countries } from '@/lib/clinical/data/countries';
 import { REGIMEN_AFILIACION, EPS_LIST, PREPAGADAS_LIST, PLAN_COMPLEMENTARIO_LIST } from '@/lib/clinical/data/colombia-health';
 import AntecedentesStep from './AntecedentesStep';
 import type { Cie10Selection } from '@/lib/clinical/data/cie10';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 const getCaimedMessage = (step: number) => {
   switch(step) {
@@ -73,6 +73,7 @@ export interface ExistingProfile {
 }
 
 export default function Questionnaire({ onComplete, existingProfile, skipPersonalData, editMode }: QuestionnaireProps) {
+  const shouldReduceMotion = useReducedMotion();
   const [step, setStep] = useState(editMode ? 3 : 1);
   const totalSteps = 18;
   const [isTermsOpen, setIsTermsOpen] = useState(false);
@@ -420,9 +421,9 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             </div>
 
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0 }}
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
+              animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              transition={{ duration: shouldReduceMotion ? 0.2 : 0.5, delay: 0 }}
               className="relative z-10 bg-white rounded-2xl px-6 py-5 shadow-[0_8px_32px_rgba(0,0,0,0.25)] border border-white/30 hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)] transition-shadow duration-300"
             >
               <img
@@ -433,9 +434,9 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
+              animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              transition={{ duration: shouldReduceMotion ? 0.2 : 0.5, delay: 0.15 }}
               className="relative z-10 space-y-3"
             >
               <p className="text-xs uppercase tracking-[0.3em] font-bold text-blue-300">
@@ -447,9 +448,9 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
+              animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              transition={{ duration: shouldReduceMotion ? 0.2 : 0.5, delay: 0.3 }}
               className="relative z-10 max-w-2xl bg-white/10 backdrop-blur-xl border border-white/20 ring-1 ring-white/10 rounded-2xl p-8 text-left hover:bg-white/[0.14] hover:border-white/30 transition-all duration-300"
             >
               <p className="text-white/90 leading-relaxed">
