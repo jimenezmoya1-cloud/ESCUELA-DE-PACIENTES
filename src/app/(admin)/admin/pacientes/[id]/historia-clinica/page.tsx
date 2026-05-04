@@ -79,7 +79,7 @@ export default async function HistoriaClinicaPage({
 
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-neutral">Historia clínica</h1>
+          <h1 className="text-2xl font-bold text-neutral">Evaluación preventiva</h1>
           <p className="text-sm text-tertiary">{patient.name}</p>
         </div>
         {!showQuestionnaire && (

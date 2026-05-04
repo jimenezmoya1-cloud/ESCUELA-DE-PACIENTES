@@ -24,7 +24,7 @@ export default function MiCaminoClient({
         <p className="mt-1 text-base text-tertiary">
           {hasAssessment
             ? "Tu programa personalizado según tu última evaluación clínica"
-            : "Tu auxiliar de enfermería completará tu historia clínica para personalizar tu camino"}
+            : "Tu auxiliar de enfermería completará tu evaluación preventiva para personalizar tu camino"}
         </p>
       </div>
 

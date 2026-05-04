@@ -149,7 +149,7 @@ export default async function PacienteDetailPage({
               href={`/admin/pacientes/${id}/historia-clinica`}
               className="rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
             >
-              Historia clínica →
+              Evaluación preventiva →
             </a>
             <ExportButton patientId={id} patientName={patient.name} />
           </div>

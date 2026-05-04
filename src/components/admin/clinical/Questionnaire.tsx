@@ -449,7 +449,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             </h2>
             
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-sm text-slate-600 leading-relaxed">
-              "Autorizo de manera libre, expresa e informada a CAIMED S.A.S. para el tratamiento de mis datos personales y datos sensibles relacionados con mi salud, conforme a la Ley 1581 de 2012, el Decreto 1377 de 2013 y la Política de Tratamiento de Datos PL-PCG-001 de CAIMED S.A.S., con el fin de realizar el Chequeo Cardiovascular Express, generar un reporte de mis resultados y enviarlos a mi correo electrónico."
+              "Autorizo de manera libre, expresa e informada a CAIMED S.A.S. para el tratamiento de mis datos personales y datos sensibles relacionados con mi salud, conforme a la Ley 1581 de 2012, el Decreto 1377 de 2013 y la Política de Tratamiento de Datos PL-PCG-001 de CAIMED S.A.S., con el fin de realizar la Evaluación Preventiva, generar un reporte de mis resultados y registrarlo en la plataforma de Medicina Preventiva CAIMED."
               <br/><br/>
               <a href="https://caimed.com/" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">Ver política de tratamiento de datos</a>
             </div>

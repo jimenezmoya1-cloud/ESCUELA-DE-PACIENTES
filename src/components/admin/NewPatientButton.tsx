@@ -159,7 +159,7 @@ export default function NewPatientButton({ convenios }: { convenios: Convenio[] 
                   disabled={loading || !cedula.trim() || !name.trim()}
                   className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {loading ? "Creando..." : "Crear y abrir historia clínica"}
+                  {loading ? "Creando..." : "Crear y abrir evaluación preventiva"}
                 </button>
               </div>
             </form>
