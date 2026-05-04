@@ -56,6 +56,12 @@ export async function saveAssessment(input: SaveAssessmentInput): Promise<{ id: 
   const rawTakesMeds = (input.raw_questionnaire as Record<string, unknown> | null | undefined)?.takesMeds
   const takesMeds = rawTakesMeds !== 'false'
 
+  // Derivar iiefAplica del raw_questionnaire. Default false (omitir IIEF si no
+  // se sabe explícitamente que aplica — más conservador que takesMeds porque
+  // mostrar IIEF inadvertidamente sería peor que ocultarlo).
+  const rawIiefAplica = (input.raw_questionnaire as Record<string, unknown> | null | undefined)?.iief_aplica
+  const iiefAplica = rawIiefAplica === 'true'
+
   const contexto: ContextoClinico = {
     isSCA: input.is_sca,
     isDM2: input.is_dm2,
@@ -63,6 +69,7 @@ export async function saveAssessment(input: SaveAssessmentInput): Promise<{ id: 
     isPocaExpectativa: input.is_poca_expectativa,
     edad,
     takesMeds,
+    iiefAplica,
   }
   const { components, scoreGlobal, nivel, metaScore } = recomputeAssessment(input.components, contexto)
 
