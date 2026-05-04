@@ -26,6 +26,7 @@ const URL_TO_COMPONENTE: Record<string, string> = {
   alimentacion: "Alimentación",
   colesterol: "Colesterol",
   salud_mental: "Salud mental",
+  disfuncion_erectil: "Disfunción eréctil",
 }
 
 function buildProfile(params: URLSearchParams) {
@@ -96,8 +97,13 @@ export default function QuestionnaireWrapper({ userId, profile, editMode }: Prop
           }
 
           const takesMeds = params.get("takesMeds") !== "false"
+          const iiefAplica = params.get("iief_aplica") === "true"
           const components: ComponenteScore[] = Object.entries(URL_TO_COMPONENTE)
-            .filter(([key]) => takesMeds || (key !== "adherencia" && key !== "acceso"))
+            .filter(([key]) => {
+              if (!takesMeds && (key === "adherencia" || key === "acceso")) return false
+              if (!iiefAplica && key === "disfuncion_erectil") return false
+              return true
+            })
             .map(([key, nombreComp]) => {
               const raw = params.get(key)
               const valorNum = raw ? parseFloat(raw) : 0
