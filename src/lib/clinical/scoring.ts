@@ -41,9 +41,10 @@ export const calcularPuntajeExacto = (
 
     case 'Acceso a medicamentos':
       // Doc: 1=Total verde, 2=Parcial amarillo, 3=Negación rojo.
+      // Usuario 2026-05-04: Sí=100, Parcialmente=66, No=1.
       if (valor === 1) return 100
-      if (valor === 2) return 65
-      return 25
+      if (valor === 2) return 66
+      return 1
 
     case 'Peso': {
       // Doc: lógica piramidal con TARGET_BMI 21.7.
@@ -92,7 +93,8 @@ export const calcularPuntajeExacto = (
 
     case 'Actividad física':
       // Doc: ≥120 min/sem verde, 60-119 amarillo, <60 rojo.
-      if (valor >= 120) return reglaDeTresRango(valor, 120, 300, 80, 100)
+      // Usuario 2026-05-04: 100 puntos a 150 min (no a 300).
+      if (valor >= 120) return reglaDeTresRango(valor, 120, 150, 80, 100)
       if (valor >= 60) return reglaDeTresRango(valor, 60, 119, 51, 79)
       return reglaDeTresRango(valor, 0, 59, 0, 50)
 
@@ -105,16 +107,16 @@ export const calcularPuntajeExacto = (
       return reglaDeTresRango(valor, 10.01, 12, 50, 0)
 
     case 'Nicotina':
-      // Doc: nunca/ex>5a verde, vapeador/humo 2da mano amarillo, fumador rojo.
       // Mapeo del cuestionario:
       //   1 = no fumador, 2 = ex >5 años, 3 = ex 1-5 años, 4 = ex <1 año,
       //   5 = fumador actual cigarrillo, 6 = fumador electrónico/vapeador.
-      if (valor === 1) return 100 // verde
-      if (valor === 2) return 90  // verde (ex ≥5a)
-      if (valor === 3) return 70  // amarillo (ex 1-5a)
-      if (valor === 4) return 55  // amarillo (ex <1a, riesgo de recaída)
-      if (valor === 5) return 0   // rojo (fumador actual)
-      if (valor === 6) return 60  // amarillo (vapeador / humo 2da mano)
+      // Usuario 2026-05-04: vapeador ahora cuenta igual que fumador actual (0).
+      if (valor === 1) return 100  // No fumador
+      if (valor === 2) return 75   // Ex >5 años
+      if (valor === 3) return 60   // Ex 1-5 años
+      if (valor === 4) return 25   // Ex <1 año
+      if (valor === 5) return 0    // Fumador actual cigarrillo
+      if (valor === 6) return 0    // Vapeador / cigarrillo electrónico
       return 0
 
     case 'Red de apoyo':
@@ -238,7 +240,18 @@ export const recomputeAssessment = (
   componentes: ComponenteScore[],
   contexto: ContextoClinico,
 ): { components: ComponenteScore[]; scoreGlobal: number; nivel: 'Verde' | 'Amarillo' | 'Rojo'; metaScore: number } => {
-  const recomputed = componentes.map((c) => {
+  // Filtro defensivo: si el paciente no toma medicamentos, omitir Acceso y Adherencia
+  // del cómputo (no diluir el score global con valores neutros). El upstream
+  // (QuestionnaireWrapper) ya filtra al guardar; este es defense-in-depth para
+  // evaluaciones legacy y otras call sites.
+  const filtered = contexto.takesMeds
+    ? componentes
+    : componentes.filter(
+        (c) =>
+          c.nombre !== 'Acceso a medicamentos' &&
+          c.nombre !== 'Adherencia a medicamentos',
+      )
+  const recomputed = filtered.map((c) => {
     const valorNum = typeof c.valor === 'number' ? c.valor : parseFloat(String(c.valor).replace(',', '.')) || 0
     return { ...c, puntaje: calcularPuntajeExacto(c.nombre, valorNum, contexto) }
   })
