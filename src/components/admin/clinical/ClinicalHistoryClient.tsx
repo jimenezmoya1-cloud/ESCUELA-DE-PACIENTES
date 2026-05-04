@@ -87,6 +87,10 @@ export default function ClinicalHistoryClient({
   const [isDM2, setIsDM2] = useState(initialAssessment?.is_dm2 ?? false)
   const [isPluripatologico, setIsPluripatologico] = useState(initialAssessment?.is_pluripatologico ?? false)
   const [isPocaExpectativa, setIsPocaExpectativa] = useState(initialAssessment?.is_poca_expectativa ?? false)
+  const [takesMeds] = useState<boolean>(() => {
+    const raw = initialAssessment?.raw_questionnaire as Record<string, unknown> | null | undefined
+    return raw?.takesMeds !== 'false'
+  })
   const [edadCalculada, setEdadCalculada] = useState(0)
 
   useEffect(() => {
@@ -95,6 +99,14 @@ export default function ClinicalHistoryClient({
 
   const valoresKey = componentes.map((c) => c.valor).join("|")
 
+  const componentesVisibles = takesMeds
+    ? componentes
+    : componentes.filter(
+        (c) =>
+          c.nombre !== 'Acceso a medicamentos' &&
+          c.nombre !== 'Adherencia a medicamentos',
+      )
+
   useEffect(() => {
     const result = recomputeAssessment(componentes, {
       isSCA,
@@ -102,11 +114,21 @@ export default function ClinicalHistoryClient({
       isPluripatologico,
       isPocaExpectativa,
       edad: edadCalculada,
+      takesMeds,
     })
-    setComponentes(result.components)
+    // recomputeAssessment puede devolver menos componentes si filtró Acceso/Adherencia.
+    // Mergeamos los puntajes recomputados sobre el state completo, preservando los
+    // componentes filtrados intactos (con su valor original) para evitar perder data
+    // si algún día se reactivara takesMeds.
+    setComponentes((prev) =>
+      prev.map((c) => {
+        const updated = result.components.find((rc) => rc.nombre === c.nombre)
+        return updated ? { ...c, puntaje: updated.puntaje } : c
+      }),
+    )
     setPaciente((prev) => ({ ...prev, scoreGlobal: result.scoreGlobal, nivel: result.nivel, metaScore: result.metaScore }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSCA, isDM2, isPluripatologico, isPocaExpectativa, edadCalculada, valoresKey])
+  }, [isSCA, isDM2, isPluripatologico, isPocaExpectativa, edadCalculada, valoresKey, takesMeds])
 
 
   const handleScoreChange = (nombre: string, nuevoValor: string) => {
@@ -167,6 +189,7 @@ export default function ClinicalHistoryClient({
           is_poca_expectativa: isPocaExpectativa,
           alertas_criticas: alertas.criticas,
           alertas_orientadoras: alertas.orientadoras,
+          raw_questionnaire: initialAssessment?.raw_questionnaire ?? undefined,
         })
         setModoEdicion(false)
         router.refresh()
@@ -219,7 +242,7 @@ export default function ClinicalHistoryClient({
           ref={page1Ref}
           paciente={paciente}
           setPaciente={setPaciente}
-          componentes={componentes}
+          componentes={componentesVisibles}
           modoEdicion={modoEdicion}
           edadCalculada={edadCalculada}
           isSCA={isSCA}
@@ -234,7 +257,7 @@ export default function ClinicalHistoryClient({
           onScoreChange={handleScoreChange}
         />
         <div className="bg-slate-200 h-4 w-full print:hidden" />
-        <ReportPage2 ref={page2Ref} paciente={paciente} componentes={componentes} isGenerando={isGenerando} />
+        <ReportPage2 ref={page2Ref} paciente={paciente} componentes={componentesVisibles} isGenerando={isGenerando} />
         <div className="bg-slate-200 h-4 w-full print:hidden" />
         <ReportPage3
           ref={page3Ref}

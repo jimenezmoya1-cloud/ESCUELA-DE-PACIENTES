@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { revalidatePath } from "next/cache"
 import { recomputeAssessment, calcularEdad } from "./scoring"
-import type { ComponenteScore, AlertaItem, CreatorSignature } from "./types"
+import type { ComponenteScore, AlertaItem, CreatorSignature, ContextoClinico } from "./types"
 import type { PatientClinicalProfile, PatientAssessment } from "@/types/database"
 
 interface SaveAssessmentInput {
@@ -51,12 +51,18 @@ export async function saveAssessment(input: SaveAssessmentInput): Promise<{ id: 
     edad = calcularEdad(formatted)
   }
 
-  const contexto = {
+  // Derivar takesMeds del raw_questionnaire. Default true (conservador):
+  // si el campo no existe, se comporta idéntico al pre-EP-3.
+  const rawTakesMeds = (input.raw_questionnaire as Record<string, unknown> | null | undefined)?.takesMeds
+  const takesMeds = rawTakesMeds !== 'false'
+
+  const contexto: ContextoClinico = {
     isSCA: input.is_sca,
     isDM2: input.is_dm2,
     isPluripatologico: input.is_pluripatologico,
     isPocaExpectativa: input.is_poca_expectativa,
     edad,
+    takesMeds,
   }
   const { components, scoreGlobal, nivel, metaScore } = recomputeAssessment(input.components, contexto)
 
