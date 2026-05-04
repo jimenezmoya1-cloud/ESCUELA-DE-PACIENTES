@@ -1239,6 +1239,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               <button
                 type="button"
                 onClick={() => setHasActivity(true)}
+                aria-pressed={formData.hasSexualActivity === true}
                 className={`p-6 rounded-2xl border-2 text-center transition-all ${
                   formData.hasSexualActivity === true
                     ? 'border-blue-600 bg-blue-50 shadow-md'
@@ -1251,6 +1252,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               <button
                 type="button"
                 onClick={() => setHasActivity(false)}
+                aria-pressed={formData.hasSexualActivity === false}
                 className={`p-6 rounded-2xl border-2 text-center transition-all ${
                   formData.hasSexualActivity === false
                     ? 'border-blue-600 bg-blue-50 shadow-md'
