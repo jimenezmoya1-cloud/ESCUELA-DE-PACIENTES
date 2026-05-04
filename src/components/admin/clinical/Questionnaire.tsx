@@ -181,7 +181,8 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       hba1cDate: '',
       hba1c: ''
     },
-    erectileDysfunction: Array(6).fill(0),
+    hasSexualActivity: null as boolean | null,
+    iief: Array(5).fill(0),
     phq9: Array(9).fill(0),
     phq9Difficulty: 0,
     medas: Array(8).fill(-1)
@@ -315,6 +316,9 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       colesterol: formData.paraclinics.ldl.toString(),
       salud_mental: salud_mental.toString(),
       takesMeds: formData.takesMeds ? 'true' : 'false',
+      // IIEF-5: solo aplica si gender=Masculino y respondió Sí al gate.
+      disfuncion_erectil: formData.iief.reduce((a, b) => a + b, 0).toString(),
+      iief_aplica: (formData.gender === 'Masculino' && formData.hasSexualActivity === true) ? 'true' : 'false',
       // ───────────── Campos crudos extra (para export Excel y trazabilidad) ─────────────
       // Signos vitales completos
       pad: formData.vitalSigns.pad.toString(),
@@ -379,7 +383,11 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 10: return formData.vitalSigns.pas && formData.vitalSigns.pad && formData.vitalSigns.hr && formData.vitalSigns.rr && formData.vitalSigns.spo2 && formData.vitalSigns.temp && (!formData.vitalSigns.outOfRange || formData.vitalSigns.outOfRangeDetails);
       case 11: return formData.weight && formData.height;
       case 12: return true;
-      case 13: return formData.gender !== 'Masculino' || formData.erectileDysfunction.every(v => v >= 0);
+      case 13:
+        if (formData.gender !== 'Masculino') return true;
+        if (formData.hasSexualActivity === null) return false;
+        if (formData.hasSexualActivity === false) return true;
+        return formData.iief.every(v => v >= 1);
       case 14: return formData.smoked !== null;
       case 15: return formData.smoked === false || formData.smokeStatus.length > 0;
       case 16: {
@@ -1156,61 +1164,138 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             </div>
           </div>
         );
-      case 13:
-        const edQuestions = [
-          "¿Con qué frecuencia fue capaz de lograr una erección durante la actividad sexual?",
-          "Cuando tuvo erecciones con estimulación sexual, ¿con qué frecuencia fueron lo suficientemente firmes para la penetración?",
-          "Al intentar tener relaciones sexuales, ¿con qué frecuencia fue capaz de penetrar a su pareja?",
-          "Durante las relaciones sexuales, ¿con qué frecuencia fue capaz de mantener la erección después de haber penetrado a su pareja?",
-          "Durante las relaciones sexuales, ¿qué tan difícil fue mantener la erección hasta completar el acto sexual?",
-          "¿Cómo calificaría su nivel de confianza para lograr y mantener una erección?"
+      case 13: {
+        const setHasActivity = (v: boolean) => {
+          if (v === false) {
+            setFormData({ ...formData, hasSexualActivity: false, iief: Array(5).fill(0) });
+          } else {
+            setFormData({ ...formData, hasSexualActivity: true });
+          }
+        };
+        const setIiefAnswer = (idx: number, val: number) => {
+          const newIief = [...formData.iief];
+          newIief[idx] = val;
+          setFormData({ ...formData, iief: newIief });
+        };
+        const iiefQuestions: { question: string; options: { val: number; label: string }[] }[] = [
+          {
+            question: '¿Cómo calificarías tu confianza para conseguir y mantener una erección?',
+            options: [
+              { val: 1, label: 'Muy bajo' },
+              { val: 2, label: 'Bajo' },
+              { val: 3, label: 'Moderado' },
+              { val: 4, label: 'Alto' },
+              { val: 5, label: 'Muy alto' },
+            ],
+          },
+          {
+            question: '¿Con qué frecuencia tus erecciones fueron suficientemente firmes para penetrar a tu pareja?',
+            options: [
+              { val: 1, label: 'Casi nunca' },
+              { val: 2, label: 'Pocas veces' },
+              { val: 3, label: 'A veces' },
+              { val: 4, label: 'La mayoría de las veces' },
+              { val: 5, label: 'Casi siempre' },
+            ],
+          },
+          {
+            question: 'Durante las relaciones sexuales, ¿con qué frecuencia mantuviste la erección después de penetrar a tu pareja?',
+            options: [
+              { val: 1, label: 'Casi nunca' },
+              { val: 2, label: 'Pocas veces' },
+              { val: 3, label: 'A veces' },
+              { val: 4, label: 'La mayoría de las veces' },
+              { val: 5, label: 'Casi siempre' },
+            ],
+          },
+          {
+            question: 'Durante el coito, ¿qué tan difícil fue mantener la erección hasta completar el acto?',
+            options: [
+              { val: 1, label: 'Extremadamente difícil' },
+              { val: 2, label: 'Muy difícil' },
+              { val: 3, label: 'Difícil' },
+              { val: 4, label: 'Algo difícil' },
+              { val: 5, label: 'Sin dificultad' },
+            ],
+          },
+          {
+            question: 'Cuando intentaste tener relaciones, ¿qué tan satisfactorias fueron?',
+            options: [
+              { val: 1, label: 'Nada satisfactorias' },
+              { val: 2, label: 'Poco satisfactorias' },
+              { val: 3, label: 'Moderadamente satisfactorias' },
+              { val: 4, label: 'Muy satisfactorias' },
+              { val: 5, label: 'Extremadamente satisfactorias' },
+            ],
+          },
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Salud Sexual (IIEF-5)
+              <Activity className="w-6 h-6 text-blue-600" /> Salud Sexual
             </h2>
-            <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
-              {edQuestions.map((q, idx) => (
-                <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                  <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                    {[
-                      { val: 1, label: 'Casi nunca / Nunca' },
-                      { val: 2, label: 'Pocas veces' },
-                      { val: 3, label: 'A veces' },
-                      { val: 4, label: 'La mayoría de las veces' },
-                      { val: 5, label: 'Casi siempre / Siempre' }
-                    ].map(opt => (
-                      <label 
-                        key={opt.val} 
-                        className={`flex items-center justify-center p-2 rounded-xl border cursor-pointer transition-all text-xs text-center ${
-                          formData.erectileDysfunction[idx] === opt.val 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
-                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        <input 
-                          type="radio" 
-                          name={`ed_${idx}`} 
-                          value={opt.val} 
-                          checked={formData.erectileDysfunction[idx] === opt.val}
-                          onChange={() => {
-                            const newEd = [...formData.erectileDysfunction];
-                            newEd[idx] = opt.val;
-                            setFormData({...formData, erectileDysfunction: newEd});
-                          }}
-                          className="hidden"
-                        />
-                        {opt.label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <p className="text-slate-600 font-medium">¿Tienes actividad sexual?</p>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setHasActivity(true)}
+                className={`p-6 rounded-2xl border-2 text-center transition-all ${
+                  formData.hasSexualActivity === true
+                    ? 'border-blue-600 bg-blue-50 shadow-md'
+                    : 'border-slate-200 bg-white hover:border-blue-300'
+                }`}
+              >
+                <span className="text-2xl block mb-2" aria-hidden="true">✓</span>
+                <span className="font-bold text-slate-700">Sí</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setHasActivity(false)}
+                className={`p-6 rounded-2xl border-2 text-center transition-all ${
+                  formData.hasSexualActivity === false
+                    ? 'border-blue-600 bg-blue-50 shadow-md'
+                    : 'border-slate-200 bg-white hover:border-blue-300'
+                }`}
+              >
+                <span className="text-2xl block mb-2" aria-hidden="true">✗</span>
+                <span className="font-bold text-slate-700">No</span>
+              </button>
             </div>
+
+            {formData.hasSexualActivity === true && (
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {iiefQuestions.map((q, idx) => (
+                  <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q.question}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                      {q.options.map(opt => (
+                        <label
+                          key={opt.val}
+                          className={`flex items-center justify-center p-2 rounded-xl border cursor-pointer transition-all text-xs text-center ${
+                            formData.iief[idx] === opt.val
+                              ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
+                              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`iief_${idx}`}
+                            value={opt.val}
+                            checked={formData.iief[idx] === opt.val}
+                            onChange={() => setIiefAnswer(idx, opt.val)}
+                            className="hidden"
+                          />
+                          {opt.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
+      }
       case 14:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
