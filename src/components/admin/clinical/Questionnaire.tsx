@@ -12,6 +12,7 @@ import { countries } from '@/lib/clinical/data/countries';
 import { REGIMEN_AFILIACION, EPS_LIST, PREPAGADAS_LIST, PLAN_COMPLEMENTARIO_LIST } from '@/lib/clinical/data/colombia-health';
 import AntecedentesStep from './AntecedentesStep';
 import type { Cie10Selection } from '@/lib/clinical/data/cie10';
+import { motion } from 'framer-motion';
 
 const getCaimedMessage = (step: number) => {
   switch(step) {
@@ -399,14 +400,14 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
     switch (step) {
       case 1:
         return (
-          <div className="flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 bg-gradient-to-r from-blue-900 via-blue-800 to-slate-900 text-white p-12 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10 pointer-events-none flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center text-center space-y-8 bg-gradient-to-r from-blue-900 via-blue-800 to-slate-900 text-white p-12 rounded-[2.5rem] shadow-2xl relative overflow-hidden min-h-[640px]">
+            <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center">
                <svg viewBox="0 0 500 100" className="w-[200%] h-full stroke-blue-300 fill-none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                 <path 
-                   className="animate-[ekg_3s_linear_infinite]" 
-                   strokeDasharray="1000" 
-                   strokeDashoffset="1000" 
-                   d="M 0 50 L 150 50 L 170 20 L 190 80 L 210 10 L 230 90 L 250 50 L 500 50" 
+                 <path
+                   className="animate-[ekg_3s_linear_infinite]"
+                   strokeDasharray="1000"
+                   strokeDashoffset="1000"
+                   d="M 0 50 L 150 50 L 170 20 L 190 80 L 210 10 L 230 90 L 250 50 L 500 50"
                  />
                </svg>
                <style>{`
@@ -417,28 +418,52 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                  }
                `}</style>
             </div>
-            <div className="relative z-10 mb-8 bg-white rounded-3xl px-10 py-8 shadow-2xl border border-white/30">
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0 }}
+              className="relative z-10 bg-white rounded-2xl px-6 py-5 shadow-[0_8px_32px_rgba(0,0,0,0.25)] border border-white/30 hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)] transition-shadow duration-300"
+            >
               <img
                 src="/logo-medicina-preventiva.png"
                 alt="CAIMED Preventiva"
-                className="w-80 h-auto object-contain"
+                className="w-48 h-auto object-contain"
               />
-            </div>
-            <h1 className="text-4xl font-black text-white tracking-tight relative z-10">¡Bienvenido, Equipo CAIMED!</h1>
-            <p className="text-lg font-medium text-blue-200 relative z-10 max-w-2xl">
-              Recuerda hacer sentir al paciente "como en casa" y muy cómodo para aplicar el cuestionario. Al final del cuestionario automáticamente se le enviará al paciente el correo con el PDF del reporte respectivo.
-            </p>
-            <div className="bg-white/10 p-6 rounded-2xl border border-white/20 mt-6 relative z-10 text-left">
-              <h3 className="text-xl font-bold text-white mb-2">Nuestra Filosofía</h3>
-              <p className="text-blue-100 mb-4 font-medium">Tu copiloto en salud. No tu médico de urgencias.</p>
-              <p className="text-blue-100 mb-4 text-sm leading-relaxed">
-                Complementamos tu atención médica tradicional con educación en salud, prevención estratégica y un modelo de monitoreo inteligente diseñado específicamente para adultos que quieren vivir con tranquilidad.
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              className="relative z-10 space-y-3"
+            >
+              <p className="text-xs uppercase tracking-[0.3em] font-bold text-blue-300">
+                Tu copiloto en salud
               </p>
-              <blockquote className="border-l-4 border-blue-400 pl-4 italic text-blue-200 text-sm">
-                "Al igual que cambias el aceite de tu carro cada 10.000 km —aunque funcione bien— tu corazón necesita mantenimiento preventivo. No esperes a que el motor falle."
-                <br/><span className="font-bold mt-2 block">— Equipo CAIMED</span>
-              </blockquote>
-            </div>
+              <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">
+                ¡Bienvenido, Equipo CAIMED!
+              </h1>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="relative z-10 max-w-2xl bg-white/10 backdrop-blur-xl border border-white/20 ring-1 ring-white/10 rounded-2xl p-8 text-left hover:bg-white/[0.14] hover:border-white/30 transition-all duration-300"
+            >
+              <p className="text-white/90 leading-relaxed">
+                Hacer sentir al paciente cómodo es parte del cuidado. La evaluación preventiva se guarda automáticamente en la plataforma de Medicina Preventiva al finalizar.
+              </p>
+              <div className="border-t border-white/15 my-6" />
+              <div className="relative">
+                <span className="absolute -top-4 -left-2 text-6xl text-blue-300/30 font-serif leading-none select-none" aria-hidden="true">&ldquo;</span>
+                <p className="text-blue-100 italic leading-relaxed pl-6">
+                  Al igual que cambias el aceite de tu carro cada 10.000 km —aunque funcione bien— tu corazón necesita mantenimiento preventivo. No esperes a que el motor falle.
+                </p>
+                <p className="text-xs text-blue-200/80 font-bold mt-3 pl-6">— Equipo CAIMED</p>
+              </div>
+            </motion.div>
           </div>
         );
       case 2:
