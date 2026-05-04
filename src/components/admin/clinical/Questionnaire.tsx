@@ -365,7 +365,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         return formData.firstName && formData.firstLastName && formData.docNumber && formData.dob && formData.email && formData.phone && formData.gender && formData.birthCountry && formData.residenceCountry && (formData.residenceCountry !== 'Colombia' || (formData.residenceDept && formData.residenceMun)) && formData.address && formData.emergencyName && formData.emergencyRelation && formData.emergencyPhone && formData.affiliation && formData.eps && formData.prepaid && formData.complementary;
       case 4: return formData.mspss.every(v => v > 0);
       case 5: return formData.hes.every(v => v > 0);
-      case 6: return formData.diseases.length > 0;
+      case 6: return formData.diseases.length > 0 || formData.cie10.length > 0;
       case 7: return formData.takesMeds !== null;
       case 8: 
         if (formData.takesMeds === false) return true;
