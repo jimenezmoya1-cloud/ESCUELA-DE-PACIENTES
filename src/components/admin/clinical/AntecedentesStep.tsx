@@ -113,7 +113,7 @@ export default function AntecedentesStep({ diseases, cie10, onChange }: Props) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-        <Activity className="w-6 h-6 text-blue-600" /> Antecedentes
+        <Activity className="w-6 h-6 text-blue-600" aria-hidden="true" /> Antecedentes
       </h2>
 
       {/* Botones grandes DM y SCA */}
@@ -132,7 +132,7 @@ export default function AntecedentesStep({ diseases, cie10, onChange }: Props) {
                 : "border-slate-200 bg-white hover:border-blue-300"
             } ${exclusiveActive ? "opacity-40 cursor-not-allowed" : ""}`}
           >
-            <span className="text-3xl">🩸</span>
+            <span className="text-3xl" aria-hidden="true">🩸</span>
             <span className="font-bold text-slate-700 text-lg">
               Diabetes mellitus
             </span>
@@ -147,7 +147,7 @@ export default function AntecedentesStep({ diseases, cie10, onChange }: Props) {
                 : "border-slate-200 bg-white hover:border-blue-300"
             } ${exclusiveActive ? "opacity-40 cursor-not-allowed" : ""}`}
           >
-            <span className="text-3xl">⚡</span>
+            <span className="text-3xl" aria-hidden="true">⚡</span>
             <span className="font-bold text-slate-700 text-lg">
               Síndrome coronario agudo
             </span>
@@ -175,7 +175,7 @@ export default function AntecedentesStep({ diseases, cie10, onChange }: Props) {
                       : "border-slate-200 bg-white text-slate-700 hover:border-blue-300"
                   }`}
                 >
-                  <span>{c.icon}</span>
+                  <span aria-hidden="true">{c.icon}</span>
                   <span>{c.label || c.id}</span>
                 </button>
               );
@@ -187,12 +187,13 @@ export default function AntecedentesStep({ diseases, cie10, onChange }: Props) {
       {/* Buscador CIE-10 */}
       {!exclusiveActive && (
         <div>
-          <label className="block text-slate-600 font-medium mb-2">
+          <label htmlFor="cie10-search" className="block text-slate-600 font-medium mb-2">
             Buscar otro antecedente (CIE-10):
           </label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden="true" />
             <input
+              id="cie10-search"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -205,7 +206,7 @@ export default function AntecedentesStep({ diseases, cie10, onChange }: Props) {
               className="w-full pl-9 pr-9 py-2 rounded-xl border-2 border-slate-200 focus:border-blue-400 outline-none disabled:bg-slate-50"
             />
             {!catalog && !catalogError && (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 animate-spin" />
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 animate-spin" aria-hidden="true" />
             )}
           </div>
           {catalogError && (
@@ -244,7 +245,7 @@ export default function AntecedentesStep({ diseases, cie10, onChange }: Props) {
                         already ? "Ya seleccionado" : `Agregar ${e.code}`
                       }
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </li>
                 );
@@ -272,7 +273,7 @@ export default function AntecedentesStep({ diseases, cie10, onChange }: Props) {
                       className="shrink-0 p-1 text-blue-700 hover:text-red-600"
                       aria-label={`Quitar ${c.code}`}
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </li>
                 ))}
@@ -293,7 +294,7 @@ export default function AntecedentesStep({ diseases, cie10, onChange }: Props) {
               : "border-slate-200 bg-white hover:border-blue-300"
           }`}
         >
-          <span className="text-xl">❌</span>
+          <span className="text-xl" aria-hidden="true">❌</span>
           <span className="font-bold text-slate-700">
             Ninguno de los anteriores
           </span>
@@ -307,7 +308,7 @@ export default function AntecedentesStep({ diseases, cie10, onChange }: Props) {
               : "border-slate-200 bg-white hover:border-blue-300"
           }`}
         >
-          <span className="text-xl">❓</span>
+          <span className="text-xl" aria-hidden="true">❓</span>
           <span className="font-bold text-slate-700">
             No sé qué enfermedad tengo
           </span>
