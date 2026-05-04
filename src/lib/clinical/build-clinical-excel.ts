@@ -2,7 +2,7 @@ import * as XLSX from "xlsx"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 // ============================================================================
-// Builder compartido del Excel clínico (47 columnas + hoja de Catálogos).
+// Builder compartido del Excel clínico (48 columnas + hoja de Catálogos).
 // Lo usan tanto el endpoint manual de descarga como el endpoint de backup
 // automático a Drive — así garantizamos que produzcan exactamente lo mismo.
 // ============================================================================
