@@ -48,7 +48,7 @@ case 'Disfunción eréctil':
 - 5 → 0 (peor)
 - 11 → 50 (límite rojo/amarillo)
 - 12 → 51 (inicio amarillo)
-- 15 → 64 (medio amarillo)
+- 15 → 60 (medio amarillo)
 - 21 → 79 (límite amarillo/verde)
 - 22 → 80 (inicio verde)
 - 25 → 100 (mejor)
