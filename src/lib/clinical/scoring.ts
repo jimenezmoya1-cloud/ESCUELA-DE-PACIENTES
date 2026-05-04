@@ -154,6 +154,12 @@ export const calcularPuntajeExacto = (
       if (valor <= 14) return reglaDeTresRango(valor, 5, 14, 79, 51)
       return reglaDeTresRango(valor, 15, 27, 50, 0)
 
+    case 'Disfunción eréctil':
+      // IIEF-5: rango 5-25. Verde 22-25, amarillo 12-21, rojo 5-11.
+      if (valor <= 11) return reglaDeTresRango(valor, 5, 11, 0, 50)
+      if (valor <= 21) return reglaDeTresRango(valor, 12, 21, 51, 79)
+      return reglaDeTresRango(valor, 22, 25, 80, 100)
+
     default:
       return 0
   }
@@ -240,17 +246,16 @@ export const recomputeAssessment = (
   componentes: ComponenteScore[],
   contexto: ContextoClinico,
 ): { components: ComponenteScore[]; scoreGlobal: number; nivel: 'Verde' | 'Amarillo' | 'Rojo'; metaScore: number } => {
-  // Filtro defensivo: si el paciente no toma medicamentos, omitir Acceso y Adherencia
-  // del cómputo (no diluir el score global con valores neutros). El upstream
-  // (QuestionnaireWrapper) ya filtra al guardar; este es defense-in-depth para
-  // evaluaciones legacy y otras call sites.
-  const filtered = contexto.takesMeds
-    ? componentes
-    : componentes.filter(
-        (c) =>
-          c.nombre !== 'Acceso a medicamentos' &&
-          c.nombre !== 'Adherencia a medicamentos',
-      )
+  // Filtro defensivo: omitir componentes que no aplican al paciente para no diluir
+  // el score global. El upstream (QuestionnaireWrapper) ya filtra al guardar; este
+  // es defense-in-depth para evaluaciones legacy y otras call sites.
+  //   - Si !takesMeds: omitir Acceso + Adherencia.
+  //   - Si !iiefAplica: omitir Disfunción eréctil.
+  const filtered = componentes.filter((c) => {
+    if (!contexto.takesMeds && (c.nombre === 'Acceso a medicamentos' || c.nombre === 'Adherencia a medicamentos')) return false
+    if (!contexto.iiefAplica && c.nombre === 'Disfunción eréctil') return false
+    return true
+  })
   const recomputed = filtered.map((c) => {
     const valorNum = typeof c.valor === 'number' ? c.valor : parseFloat(String(c.valor).replace(',', '.')) || 0
     return { ...c, puntaje: calcularPuntajeExacto(c.nombre, valorNum, contexto) }

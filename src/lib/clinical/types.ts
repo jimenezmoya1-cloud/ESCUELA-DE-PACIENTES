@@ -5,6 +5,7 @@ export interface ContextoClinico {
   isPocaExpectativa: boolean
   edad: number
   takesMeds: boolean
+  iiefAplica: boolean
 }
 
 export interface CreatorSignature {
