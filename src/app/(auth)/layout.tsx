@@ -26,17 +26,17 @@ export default function AuthLayout({
       </div>
 
       {/* Contenido principal — logo y formulario unidos en una sola tarjeta cuadrada */}
-      <div className="relative w-full max-w-lg">
-        <div className="glass-card animate-welcome-fade-up rounded-3xl p-7 sm:p-10">
-          <div className="mb-5 flex flex-col items-center sm:mb-6">
+      <div className="relative w-full max-w-3xl">
+        <div className="glass-card animate-welcome-fade-up rounded-3xl px-6 pb-7 pt-1 sm:px-8 sm:pb-9 sm:pt-2">
+          <div className="-mt-6 -mb-8 flex flex-col items-center sm:-mt-8 sm:-mb-10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo-medicina-preventiva.png"
+              src="/logo-medicina-preventiva-transparente.png"
               alt="CaimeD Medicina Preventiva"
-              width={1536}
-              height={1024}
+              width={1980}
+              height={1320}
               draggable={false}
-              className="logo-blend animate-logo-entrance h-auto w-48 max-w-full select-none sm:w-56"
+              className="animate-logo-entrance h-auto w-full max-w-[44rem] select-none"
             />
           </div>
           {children}
