@@ -122,7 +122,8 @@ create table if not exists public.evaluation_credits (
   purchased_at timestamptz not null default now(),
   expires_at timestamptz,
   notes text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint evaluation_credits_remaining_lte_amount check (remaining <= amount)
 );
 create index if not exists idx_evaluation_credits_patient on public.evaluation_credits(patient_id);
 create index if not exists idx_evaluation_credits_active
@@ -192,7 +193,9 @@ alter table public.messages alter column from_user_id drop not null;
 do $$
 begin
   if not exists (
-    select 1 from pg_constraint where conname = 'messages_from_user_required_for_human'
+    select 1 from pg_constraint
+    where conname = 'messages_from_user_required_for_human'
+      and conrelid = 'public.messages'::regclass
   ) then
     alter table public.messages
       add constraint messages_from_user_required_for_human
@@ -345,7 +348,7 @@ create policy "admin read email log" on public.email_log
 
 create or replace function public.pick_least_loaded_clinician(slot_start timestamptz)
 returns uuid
-language sql stable
+language sql stable security definer set search_path = public
 as $$
   with available as (
     select u.id as clinician_id
@@ -363,7 +366,7 @@ as $$
       and not exists (
         select 1 from public.schedule_blocks sb
         where sb.clinician_id = u.id
-          and sb.start_at <= slot_start
+          and sb.start_at <  (slot_start + interval '30 minutes')
           and sb.end_at   >  slot_start
       )
       and not exists (
