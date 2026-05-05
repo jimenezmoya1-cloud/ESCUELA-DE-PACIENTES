@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentProfile } from "@/lib/auth/profile"
 import WelcomeHub, { type WelcomeAction } from "@/components/ui/WelcomeHub"
+import DashboardAlerts from "@/components/admin/DashboardAlerts"
 import {
   Users,
   Calendar,
@@ -129,6 +130,8 @@ export default async function AdminDashboardPage({
         subtitle="¿Qué quieres hacer hoy?"
         actions={adminActions}
       />
+
+      <DashboardAlerts />
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold text-neutral">Resumen</h2>
