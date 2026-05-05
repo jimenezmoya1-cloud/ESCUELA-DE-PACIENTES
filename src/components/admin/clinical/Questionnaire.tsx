@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   HeartPulse, User, CreditCard, Calendar, Phone, Mail,
   Ruler, Scale, Activity, Pill, Package, Moon, Dumbbell,
-  Check, ChevronRight, ChevronLeft, Loader2, Link as LinkIcon, CheckCircle2
+  Check, ChevronRight, ChevronLeft, Loader2, Link as LinkIcon, CheckCircle2, X
 } from 'lucide-react';
 import TermsModal from './TermsModal';
 import { colombia } from '@/lib/clinical/data/colombia';
@@ -1758,9 +1758,20 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       </div>
       
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 bg-blue-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-5 fade-in duration-300 z-50 max-w-md border border-blue-500/50">
-          <HeartPulse className="w-8 h-8 shrink-0 text-blue-200" />
-          <p className="font-medium text-sm leading-relaxed">{toastMsg}</p>
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-blue-600/95 backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-5 fade-in duration-300 z-50 max-w-lg border border-blue-400/30">
+          <HeartPulse className="w-8 h-8 shrink-0 text-blue-200" aria-hidden="true" />
+          <p className="font-medium text-sm leading-relaxed flex-1">{toastMsg}</p>
+          <button
+            type="button"
+            onClick={() => {
+              if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+              setToastMsg('');
+            }}
+            className="shrink-0 p-1 rounded-md hover:bg-white/15 transition-colors"
+            aria-label="Cerrar mensaje"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
         </div>
       )}
     </div>
