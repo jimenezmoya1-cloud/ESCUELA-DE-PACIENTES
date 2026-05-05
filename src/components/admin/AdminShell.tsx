@@ -103,6 +103,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/admin/clinico/dashboard", label: "Dashboard clínico", icon: stethoscopeIcon },
       { href: "/admin/pacientes", label: "Pacientes", icon: patientsIcon },
+      { href: "/admin/clinico/disponibilidad", label: "Mi disponibilidad", icon: calendarIcon },
     ],
   },
 ]
