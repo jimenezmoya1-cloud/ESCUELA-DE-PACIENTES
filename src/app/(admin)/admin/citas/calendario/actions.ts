@@ -345,3 +345,82 @@ export async function createManualAppointmentAction(input: {
   revalidatePath("/admin/citas")
   return { ok: true, appointmentId: apt.id }
 }
+
+export async function reassignClinicianAction(input: {
+  appointmentId: string
+  newClinicianId: string
+  reason: string
+}): Promise<Result> {
+  const profile = await getCurrentProfile()
+  if (!isAdmin(profile)) return { ok: false, error: "No autorizado" }
+
+  if (!input.reason.trim()) return { ok: false, error: "Razón obligatoria" }
+
+  const admin = createAdminClient()
+
+  // 1. Validar cita activa
+  const { data: existing, error: readErr } = await admin
+    .from("appointments")
+    .select("id, status, starts_at, patient_id, clinician_id")
+    .eq("id", input.appointmentId)
+    .single()
+  if (readErr || !existing) return { ok: false, error: "Cita no encontrada" }
+  if (existing.status !== "scheduled") return { ok: false, error: `Estado inválido: '${existing.status}'` }
+
+  // 2. Validar nuevo clínico activo
+  const { data: newClinico, error: cErr } = await admin
+    .from("users").select("id, role, is_active").eq("id", input.newClinicianId).single()
+  if (cErr || !newClinico) return { ok: false, error: "Clínico no encontrado" }
+  if (newClinico.role !== "clinico" || !newClinico.is_active) {
+    return { ok: false, error: "El usuario seleccionado no es un clínico activo" }
+  }
+  if (newClinico.id === existing.clinician_id) {
+    return { ok: false, error: "Ese ya es el clínico de la cita" }
+  }
+
+  // 3. Update — UNIQUE constraint protege double-booking en el destino
+  const { error: updErr } = await admin
+    .from("appointments")
+    .update({
+      clinician_id: input.newClinicianId,
+      reminder_24h_sent_at: null,
+      reminder_1h_sent_at: null,
+    })
+    .eq("id", input.appointmentId)
+
+  if (updErr) {
+    return {
+      ok: false,
+      error: "Ese clínico ya tiene otra cita en ese horario. Elige otro o reagenda primero.",
+    }
+  }
+
+  // 4. Audit
+  await admin.from("audit_log").insert({
+    actor_id: profile!.id,
+    action: "admin_reassign_clinician",
+    target_type: "appointment",
+    target_id: input.appointmentId,
+    metadata: {
+      old_clinician_id: existing.clinician_id,
+      new_clinician_id: input.newClinicianId,
+      reason: input.reason.trim(),
+    },
+  })
+
+  // 5. Notificar al nuevo clínico (best-effort)
+  try {
+    const { notifyBookingCreated } = await import("@/lib/notifications/triggers")
+    await notifyBookingCreated({
+      patientId: existing.patient_id,
+      clinicianId: input.newClinicianId,
+      startsAtIso: existing.starts_at,
+    })
+  } catch (e) {
+    console.error("[reassign_clinician] notification failed:", e)
+  }
+
+  revalidatePath("/admin/citas")
+  revalidatePath("/admin")
+  return { ok: true }
+}

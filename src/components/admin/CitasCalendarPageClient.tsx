@@ -39,6 +39,7 @@ export default function CitasCalendarPageClient({
       <CitasCalendarView appointments={appointments} onSelectAppointment={setSelected} />
       <CitaDrawerAdmin
         appointment={selected}
+        clinicians={clinicians}
         onClose={() => setSelected(null)}
         onChanged={handleChanged}
       />
