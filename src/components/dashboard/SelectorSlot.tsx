@@ -36,11 +36,6 @@ export default function SelectorSlot({ creditsRemaining, slotsByDay }: Props) {
     return new Set(Object.keys(slotsByDay))
   }, [slotsByDay])
 
-  function dayHasSlots(day: Date): boolean {
-    const key = utcIsoToBogotaDateKey(day.toISOString())
-    return daysWithSlots.has(key)
-  }
-
   function handleConfirm() {
     if (!confirmSlot) return
     setError(null)
