@@ -326,7 +326,8 @@ export const computeChipScore = (
     case 'Adherencia a medicamentos': {
       const arms = formData.arms as number[]
       if (!arms || arms.some(v => v === 0)) return null
-      const suma = sumArr(arms)
+      // Pregunta 12 (idx 11) está inversa — mismo cálculo que Questionnaire.tsx:295-300.
+      const suma = arms.reduce((a, b, idx) => idx === 11 ? a + (5 - b) : a + b, 0)
       return {
         label: 'Suma',
         displayValue: String(suma),
