@@ -86,6 +86,18 @@ export async function registerManualPayment(input: {
     metadata: { credit_id: creditId, plan: input.plan, patient_id: input.patientId },
   })
 
+  // 5. Notificación (best-effort, no falla la action si el email falla)
+  try {
+    const { notifyManualPaymentApproved } = await import("@/lib/notifications/triggers")
+    await notifyManualPaymentApproved({
+      patientId: input.patientId,
+      plan: input.plan,
+      amountCop: copToCents(input.amountCop),
+    })
+  } catch (e) {
+    console.error("[manual_payment] notification failed:", e)
+  }
+
   revalidatePath("/admin/citas/pagos")
   return { ok: true, paymentId: payment.id }
 }

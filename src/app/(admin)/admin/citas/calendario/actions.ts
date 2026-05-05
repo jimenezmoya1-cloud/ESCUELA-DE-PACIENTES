@@ -78,6 +78,26 @@ export async function cancelAppointmentAction(input: {
     },
   })
 
+  // 5. Notificación (best-effort)
+  try {
+    const { data: aptFull } = await admin
+      .from("appointments")
+      .select("patient_id, starts_at")
+      .eq("id", input.appointmentId)
+      .single()
+    if (aptFull) {
+      const { notifyAppointmentCancelled } = await import("@/lib/notifications/triggers")
+      await notifyAppointmentCancelled({
+        patientId: aptFull.patient_id,
+        startsAtIso: aptFull.starts_at,
+        reason: input.reason.trim(),
+        creditReturned: input.returnCredit,
+      })
+    }
+  } catch (e) {
+    console.error("[cancel_appointment] notification failed:", e)
+  }
+
   revalidatePath("/admin/citas")
   return { ok: true }
 }
