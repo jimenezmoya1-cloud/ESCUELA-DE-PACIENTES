@@ -27,12 +27,14 @@
 **Crear:**
 - `supabase/migration-v9-scheduling.sql` — migración con todas las tablas, indices, RLS, función round-robin.
 - `src/lib/payments/types.ts` — tipos compartidos `Plan`, `PaymentSource`, `PaymentStatus`, `Payment`, `EvaluationCredit`.
-- `src/lib/payments/config.ts` — helper para leer/escribir keys de `app_config` relacionadas a pagos y agendamiento.
+- `src/lib/payments/config.ts` — helper para leer/escribir keys de `app_config` relacionadas a pagos y agendamiento (server-only).
+- `src/lib/payments/format.ts` — utilidades puras de formato/conversión COP (`copToCents`, `centsToCop`, `formatCop`). Sin importaciones de servidor, importable desde client components.
 - `src/lib/payments/credits.ts` — `getRemainingCreditsForPatient()`, `consumeCredit()`, `returnCredit()`.
 - `src/app/(admin)/admin/configuracion/page.tsx` — server component, lee config, renderiza form.
 - `src/app/(admin)/admin/configuracion/actions.ts` — server actions `updateAppConfig`.
 - `src/components/admin/ConfiguracionForm.tsx` — client component con campos editables.
 - `src/app/(admin)/admin/citas/layout.tsx` — layout con tabs.
+- `src/components/admin/CitasTabs.tsx` — client component que resalta el tab activo vía `usePathname()`.
 - `src/app/(admin)/admin/citas/page.tsx` — redirect a `/admin/citas/pagos`.
 - `src/app/(admin)/admin/citas/calendario/page.tsx` — placeholder ("Disponible en Plan 3").
 - `src/app/(admin)/admin/citas/tabla/page.tsx` — placeholder ("Disponible en Plan 3").
@@ -122,7 +124,8 @@ create table if not exists public.evaluation_credits (
   purchased_at timestamptz not null default now(),
   expires_at timestamptz,
   notes text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint evaluation_credits_remaining_lte_amount check (remaining <= amount)
 );
 create index if not exists idx_evaluation_credits_patient on public.evaluation_credits(patient_id);
 create index if not exists idx_evaluation_credits_active
@@ -192,7 +195,9 @@ alter table public.messages alter column from_user_id drop not null;
 do $$
 begin
   if not exists (
-    select 1 from pg_constraint where conname = 'messages_from_user_required_for_human'
+    select 1 from pg_constraint
+    where conname = 'messages_from_user_required_for_human'
+      and conrelid = 'public.messages'::regclass
   ) then
     alter table public.messages
       add constraint messages_from_user_required_for_human
@@ -345,7 +350,7 @@ create policy "admin read email log" on public.email_log
 
 create or replace function public.pick_least_loaded_clinician(slot_start timestamptz)
 returns uuid
-language sql stable
+language sql stable security definer set search_path = public
 as $$
   with available as (
     select u.id as clinician_id
@@ -363,7 +368,7 @@ as $$
       and not exists (
         select 1 from public.schedule_blocks sb
         where sb.clinician_id = u.id
-          and sb.start_at <= slot_start
+          and sb.start_at <  (slot_start + interval '30 minutes')
           and sb.end_at   >  slot_start
       )
       and not exists (
@@ -545,8 +550,32 @@ git commit -m "feat(scheduling): add payment domain types"
 
 **Files:**
 - Create: `src/lib/payments/config.ts`
+- Create: `src/lib/payments/format.ts`
 
-- [ ] **Step 1: Crear helper que lee/escribe app_config**
+> **Nota (post-ejecución):** Las utilidades puras `copToCents`, `centsToCop` y `formatCop` fueron extraídas a `src/lib/payments/format.ts` para evitar que client components arrastren `next/headers` (vía el cliente Supabase server) al importar solo las utilidades. `config.ts` queda server-only; `format.ts` es importable desde cliente y servidor.
+
+- [ ] **Step 1a: Crear `src/lib/payments/format.ts`** (pure utilities, sin imports de servidor)
+
+```typescript
+export function copToCents(cop: number): number {
+  return Math.round(cop * 100)
+}
+
+export function centsToCop(cents: number): number {
+  return cents / 100
+}
+
+export function formatCop(cents: number): string {
+  const cop = centsToCop(cents)
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(cop)
+}
+```
+
+- [ ] **Step 1b: Crear `src/lib/payments/config.ts`** (server-only — solo fetchers y escritura de config)
 
 ```typescript
 import { createClient } from "@/lib/supabase/server"
@@ -600,30 +629,13 @@ export async function setConfigValue(key: string, value: string): Promise<void> 
     .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" })
   if (error) throw new Error(`No se pudo actualizar ${key}: ${error.message}`)
 }
-
-export function copToCents(cop: number): number {
-  return Math.round(cop * 100)
-}
-
-export function centsToCop(cents: number): number {
-  return cents / 100
-}
-
-export function formatCop(cents: number): string {
-  const cop = centsToCop(cents)
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(cop)
-}
 ```
 
 - [ ] **Step 2: Commitear**
 
 ```bash
-git add src/lib/payments/config.ts
-git commit -m "feat(scheduling): add scheduling config helper"
+git add src/lib/payments/config.ts src/lib/payments/format.ts
+git commit -m "fix(scheduling): split pure formatters out of payments/config"
 ```
 
 ---
@@ -717,19 +729,22 @@ export async function consumeOneCredit(patientId: string): Promise<{ creditId: s
   if (!candidate) throw new Error("Sin créditos disponibles")
 
   const newRemaining = candidate.remaining - 1
-  const { error: updErr } = await admin
+  const { data: updated, error: updErr } = await admin
     .from("evaluation_credits")
     .update({ remaining: newRemaining })
     .eq("id", candidate.id)
     .eq("remaining", candidate.remaining)            // optimistic concurrency
+    .select("id")
   if (updErr) throw new Error(`Error consumiendo crédito: ${updErr.message}`)
+  if (!updated || updated.length === 0) {
+    throw new Error("Conflicto de concurrencia: el crédito fue modificado por otra operación, intenta de nuevo")
+  }
   return { creditId: candidate.id, remaining: newRemaining }
 }
 
 /** Devuelve 1 crédito a un crédito específico. Usado al cancelar una cita con reembolso de crédito. */
 export async function returnOneCredit(creditId: string): Promise<void> {
   const admin = createAdminClient()
-  // Incrementar remaining en 1, sin pasar amount
   const { data: row, error: selErr } = await admin
     .from("evaluation_credits")
     .select("amount, remaining")
@@ -740,11 +755,16 @@ export async function returnOneCredit(creditId: string): Promise<void> {
   if (row.remaining >= row.amount) {
     throw new Error("El crédito ya está al máximo")
   }
-  const { error: updErr } = await admin
+  const { data: updated, error: updErr } = await admin
     .from("evaluation_credits")
     .update({ remaining: row.remaining + 1 })
     .eq("id", creditId)
+    .eq("remaining", row.remaining)                    // optimistic concurrency
+    .select("id")
   if (updErr) throw new Error(`Error devolviendo crédito: ${updErr.message}`)
+  if (!updated || updated.length === 0) {
+    throw new Error("Conflicto de concurrencia al devolver crédito, intenta de nuevo")
+  }
 }
 ```
 
@@ -889,7 +909,8 @@ export default async function ConfiguracionPage() {
 
 import { revalidatePath } from "next/cache"
 import { getCurrentProfile, isAdmin } from "@/lib/auth/profile"
-import { setConfigValue, copToCents } from "@/lib/payments/config"
+import { setConfigValue } from "@/lib/payments/config"
+import { copToCents } from "@/lib/payments/format"
 
 type Result = { ok: true } | { ok: false; error: string }
 
@@ -954,7 +975,7 @@ git commit -m "feat(scheduling): add /admin/configuracion server-side"
 
 import { useState, useTransition } from "react"
 import type { SchedulingConfig } from "@/lib/payments/config"
-import { centsToCop } from "@/lib/payments/config"
+import { centsToCop } from "@/lib/payments/format"
 import { updateSchedulingConfig } from "@/app/(admin)/admin/configuracion/actions"
 
 export default function ConfiguracionForm({ initial }: { initial: SchedulingConfig }) {
@@ -1124,23 +1145,59 @@ git commit -m "feat(scheduling): add ConfiguracionForm client component"
 **Files:**
 - Create: `src/app/(admin)/admin/citas/layout.tsx`
 - Create: `src/app/(admin)/admin/citas/page.tsx`
+- Create: `src/components/admin/CitasTabs.tsx` _(agregado en revisión final: client component necesario para `usePathname()`)_
 
-- [ ] **Step 1: Crear layout con navegación de tabs**
+- [ ] **Step 1: Crear client component `CitasTabs` para la navegación de tabs**
 
 ```tsx
+"use client"
+
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+
+const tabs = [
+  { href: "/admin/citas/calendario", label: "Calendario" },
+  { href: "/admin/citas/tabla", label: "Tabla de citas" },
+  { href: "/admin/citas/pagos", label: "Pagos y créditos" },
+]
+
+export default function CitasTabs() {
+  const pathname = usePathname()
+  return (
+    <nav className="flex gap-1 border-b border-tertiary/10">
+      {tabs.map((t) => {
+        const active = pathname.startsWith(t.href)
+        return (
+          <Link
+            key={t.href}
+            href={t.href}
+            className={`rounded-t-lg px-4 py-2 text-sm font-medium ${
+              active
+                ? "border-b-2 border-primary text-primary"
+                : "text-tertiary hover:text-neutral"
+            }`}
+          >
+            {t.label}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+```
+
+> **Nota:** `usePathname()` es un hook de cliente y no puede usarse en un Server Component. Por eso la nav se extrae a `CitasTabs.tsx` con `"use client"`.
+
+- [ ] **Step 2: Crear layout usando `<CitasTabs />`**
+
+```tsx
 import { redirect } from "next/navigation"
 import { getCurrentProfile, isAdmin } from "@/lib/auth/profile"
+import CitasTabs from "@/components/admin/CitasTabs"
 
 export default async function CitasLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile()
   if (!isAdmin(profile)) redirect("/admin")
-
-  const tabs = [
-    { href: "/admin/citas/calendario", label: "Calendario" },
-    { href: "/admin/citas/tabla", label: "Tabla de citas" },
-    { href: "/admin/citas/pagos", label: "Pagos y créditos" },
-  ]
 
   return (
     <div className="space-y-6 p-6">
@@ -1151,25 +1208,13 @@ export default async function CitasLayout({ children }: { children: React.ReactN
         </p>
       </header>
 
-      <nav className="flex gap-1 border-b border-tertiary/10">
-        {tabs.map((t) => (
-          <Link
-            key={t.href}
-            href={t.href}
-            className="rounded-t-lg px-4 py-2 text-sm font-medium text-tertiary hover:text-neutral data-[active=true]:border-b-2 data-[active=true]:border-primary data-[active=true]:text-primary"
-          >
-            {t.label}
-          </Link>
-        ))}
-      </nav>
+      <CitasTabs />
 
       <div>{children}</div>
     </div>
   )
 }
 ```
-
-> **Nota:** el `data-[active=true]` es estático aquí — Plan 1 no necesita resaltar el tab activo (es un nice-to-have). En Plan 3 cuando se itere sobre la UI se puede agregar `usePathname()` en un componente cliente para resaltar.
 
 - [ ] **Step 2: Crear page.tsx que redirige a la tab por defecto**
 
@@ -1254,7 +1299,7 @@ git commit -m "feat(scheduling): add placeholder pages for calendario and tabla 
 import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getCurrentProfile, isAdmin } from "@/lib/auth/profile"
-import { copToCents } from "@/lib/payments/config"
+import { copToCents } from "@/lib/payments/format"
 import { createCreditFromPayment } from "@/lib/payments/credits"
 import type { Plan, Payment } from "@/lib/payments/types"
 
@@ -1386,11 +1431,16 @@ export async function adjustCredit(input: {
       if (!row) return { ok: false, error: "El paciente no tiene suficientes créditos para restar" }
 
       const take = Math.min(row.remaining, toRemove)
-      const { error: updErr } = await admin
+      const { data: updated, error: updErr } = await admin
         .from("evaluation_credits")
         .update({ remaining: row.remaining - take })
         .eq("id", row.id)
+        .eq("remaining", row.remaining)             // optimistic concurrency
+        .select("id")
       if (updErr) return { ok: false, error: updErr.message }
+      if (!updated || updated.length === 0) {
+        return { ok: false, error: "Conflicto de concurrencia: el crédito fue modificado por otra operación, intenta de nuevo" }
+      }
       toRemove -= take
     }
   }
@@ -1456,7 +1506,11 @@ export async function listPayments(input: {
       )
     : payments
 
-  return { ok: true, payments: filtered, total: count ?? 0 }
+  return {
+    ok: true,
+    payments: filtered,
+    total: input.search ? filtered.length : (count ?? 0),
+  }
 }
 ```
 
@@ -1501,7 +1555,7 @@ export default function PatientAutocomplete({
   const [results, setResults] = useState<PatientLite[]>([])
   const [open, setOpen] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const supabase = createClient()
+  const supabaseRef = useRef(createClient())
 
   useEffect(() => {
     if (!query || query.length < 2) {
@@ -1510,7 +1564,7 @@ export default function PatientAutocomplete({
     }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
-      const { data } = await supabase
+      const { data } = await supabaseRef.current
         .from("users")
         .select("id, name, email")
         .eq("role", "patient")
@@ -1518,7 +1572,7 @@ export default function PatientAutocomplete({
         .limit(10)
       setResults((data ?? []) as PatientLite[])
     }, 250)
-  }, [query, supabase])
+  }, [query])
 
   if (value) {
     return (
@@ -1918,7 +1972,7 @@ git commit -m "feat(scheduling): add AjustarCreditosModal"
 
 import { useState, useEffect, useTransition } from "react"
 import { listPayments } from "@/app/(admin)/admin/citas/pagos/actions"
-import { formatCop } from "@/lib/payments/config"
+import { formatCop } from "@/lib/payments/format"
 import { PLAN_LABEL, STATUS_LABEL, SOURCE_LABEL } from "@/lib/payments/types"
 import type { Payment } from "@/lib/payments/types"
 import RegistrarPagoManualModal from "./RegistrarPagoManualModal"
@@ -2076,7 +2130,8 @@ git commit -m "feat(scheduling): add PagosTable with filters and modals"
 - [ ] **Step 1: Crear server component que carga config y pinta tabla**
 
 ```tsx
-import { getSchedulingConfig, centsToCop } from "@/lib/payments/config"
+import { getSchedulingConfig } from "@/lib/payments/config"
+import { centsToCop } from "@/lib/payments/format"
 import PagosTable from "@/components/admin/PagosTable"
 
 export const dynamic = "force-dynamic"
