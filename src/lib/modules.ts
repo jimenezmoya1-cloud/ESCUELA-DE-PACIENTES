@@ -27,9 +27,10 @@ interface AssessmentComponent {
 }
 
 /**
- * Construye la ruta automática a partir del último reporte clínico:
- * 1. "Inicio de ciclo" (siempre primero)
- * 2. "El incendio que vamos a apagar" (si existe)
+ * Construye la ruta automática a partir de la última evaluación preventiva:
+ * 1. "Inicio de ciclo" — solo en la PRIMERA evaluación; en evaluaciones
+ *    posteriores se mueve a la biblioteca (siempre desbloqueado).
+ * 2. "El incendio que vamos a apagar" (absorbido en Inicio)
  * 3-5. Top 3 prioridades = los 3 componentes con MENOR puntaje (peor estado)
  * 6+. Resto de módulos en orden fijo, con filtros condicionales (sexo / meds)
  * Último: "Cierre de ciclo"
@@ -39,15 +40,17 @@ export function buildAutoRoute(
   assessmentComponents: AssessmentComponent[],
   sexo: string | null,
   takesChronicMedication: boolean,
+  isFirstAssessment: boolean = true,
 ): { route: Module[]; pathCount: number } {
   const route: Module[] = []
   const usedIds = new Set<string>()
 
   const isMale = sexo === 'Masculino' || sexo === 'M' || sexo === 'masculino' || sexo === 'male'
 
-  // 1. Inicio (incluye conceptualmente "el incendio que vamos a apagar")
   const inicio = allModules.find((m) => m.component_key === 'empowerment' || m.order === 1)
-  if (inicio) {
+
+  // 1. Inicio: solo encabeza el camino la primera vez.
+  if (inicio && isFirstAssessment) {
     route.push(inicio)
     usedIds.add(inicio.id)
   }
@@ -74,8 +77,14 @@ export function buildAutoRoute(
     }
   }
 
-  // pathCount = 1 (Inicio) + (1 si hay elIncendio) + top3
+  // pathCount = (Inicio si es la primera) + top3
   const pathCount = route.length
+
+  // En evaluaciones posteriores, Inicio abre la biblioteca (siempre desbloqueado).
+  if (inicio && !isFirstAssessment && !usedIds.has(inicio.id)) {
+    route.push(inicio)
+    usedIds.add(inicio.id)
+  }
 
   // 6+. Resto de módulos en orden fijo
   for (const componentKey of REMAINING_MODULES_FIXED_ORDER) {

@@ -17,6 +17,7 @@ export default async function MiCaminoPage() {
     { data: latestAssessment },
     { data: modules },
     { data: completions },
+    { count: assessmentCount },
   ] = await Promise.all([
     supabase
       .from("patient_clinical_profile")
@@ -39,6 +40,10 @@ export default async function MiCaminoPage() {
       .from("module_completions")
       .select("*")
       .eq("user_id", userId),
+    supabase
+      .from("patient_assessments")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId),
   ])
 
   const assessmentComponents = (latestAssessment?.components ?? []) as AssessmentComponent[]
@@ -46,11 +51,14 @@ export default async function MiCaminoPage() {
     (latestAssessment?.raw_questionnaire as { takesMeds?: string } | null)?.takesMeds !== "false" &&
     assessmentComponents.some((c) => c.nombre === "Adherencia a medicamentos")
 
+  const isFirstAssessment = (assessmentCount ?? 0) <= 1
+
   const { route: routeModules, pathCount } = buildAutoRoute(
     modules ?? [],
     assessmentComponents,
     clinicalProfile?.sexo ?? null,
     takesChronicMedication,
+    isFirstAssessment,
   )
 
   // Submodule counts
