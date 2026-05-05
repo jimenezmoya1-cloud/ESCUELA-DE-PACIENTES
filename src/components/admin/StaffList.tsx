@@ -2,6 +2,7 @@
 
 import { useTransition } from "react"
 import { toggleStaffActive } from "@/app/(admin)/admin/personal/actions"
+import DeactivateClinicianButton from "@/components/admin/DeactivateClinicianButton"
 
 type StaffMember = {
   id: string
@@ -38,6 +39,7 @@ export default function StaffList({ staff }: { staff: StaffMember[] }) {
             <th className="px-4 py-3">Registro</th>
             <th className="px-4 py-3">Email</th>
             <th className="px-4 py-3">Estado</th>
+            <th className="px-4 py-3">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-tertiary/10">
@@ -63,6 +65,11 @@ export default function StaffList({ staff }: { staff: StaffMember[] }) {
                 >
                   {s.is_active ? "Activo" : "Inactivo"}
                 </button>
+              </td>
+              <td className="px-4 py-3">
+                {s.role === "clinico" && s.is_active && (
+                  <DeactivateClinicianButton clinicianId={s.id} clinicianName={s.name} />
+                )}
               </td>
             </tr>
           ))}
