@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import type { SchedulingConfig } from "@/lib/payments/config"
-import { centsToCop } from "@/lib/payments/config"
+import { centsToCop } from "@/lib/payments/format"
 import { updateSchedulingConfig } from "@/app/(admin)/admin/configuracion/actions"
 
 export default function ConfiguracionForm({ initial }: { initial: SchedulingConfig }) {

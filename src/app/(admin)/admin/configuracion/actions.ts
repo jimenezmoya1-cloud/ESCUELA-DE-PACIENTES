@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 import { getCurrentProfile, isAdmin } from "@/lib/auth/profile"
-import { setConfigValue, copToCents } from "@/lib/payments/config"
+import { setConfigValue } from "@/lib/payments/config"
+import { copToCents } from "@/lib/payments/format"
 
 type Result = { ok: true } | { ok: false; error: string }
 

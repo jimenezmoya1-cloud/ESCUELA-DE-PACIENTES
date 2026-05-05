@@ -1,4 +1,5 @@
-import { getSchedulingConfig, centsToCop } from "@/lib/payments/config"
+import { getSchedulingConfig } from "@/lib/payments/config"
+import { centsToCop } from "@/lib/payments/format"
 import PagosTable from "@/components/admin/PagosTable"
 
 export const dynamic = "force-dynamic"

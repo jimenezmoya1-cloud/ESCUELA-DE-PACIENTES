@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react"
 import { listPayments } from "@/app/(admin)/admin/citas/pagos/actions"
-import { formatCop } from "@/lib/payments/config"
+import { formatCop } from "@/lib/payments/format"
 import { PLAN_LABEL, STATUS_LABEL, SOURCE_LABEL } from "@/lib/payments/types"
 import type { Payment } from "@/lib/payments/types"
 import RegistrarPagoManualModal from "./RegistrarPagoManualModal"

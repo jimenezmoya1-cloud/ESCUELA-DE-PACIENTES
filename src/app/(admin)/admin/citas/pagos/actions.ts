@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getCurrentProfile, isAdmin } from "@/lib/auth/profile"
-import { copToCents } from "@/lib/payments/config"
+import { copToCents } from "@/lib/payments/format"
 import { createCreditFromPayment } from "@/lib/payments/credits"
 import type { Plan, Payment } from "@/lib/payments/types"
 
