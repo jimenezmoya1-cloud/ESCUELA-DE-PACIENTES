@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getCurrentProfile } from "@/lib/auth/profile"
-import { bookAppointment } from "@/lib/scheduling/booking"
+import { bookAppointment, getActiveAppointment } from "@/lib/scheduling/booking"
 import type { Plan } from "@/lib/payments/types"
 import { PLAN_LABEL } from "@/lib/payments/types"
 
@@ -50,6 +50,15 @@ export async function bookSlotAction(slotStartIso: string): Promise<
 > {
   const profile = await getCurrentProfile()
   if (!profile || profile.role !== "patient") return { ok: false, error: "No autorizado" }
+
+  // Guard: enforce single active appointment per patient at the action boundary
+  const existing = await getActiveAppointment(profile.id)
+  if (existing) {
+    return {
+      ok: false,
+      error: "Ya tienes una evaluación de salud programada. Solo puedes tener una activa a la vez.",
+    }
+  }
 
   const result = await bookAppointment(profile.id, slotStartIso)
   if (result.ok) {

@@ -81,18 +81,17 @@ export default function CitaActiva({ appointment, teamsInfo, creditsRemaining, p
 
       {/* Créditos restantes */}
       {creditsRemaining > 0 && (
-        <div className="rounded-xl border border-tertiary/10 bg-white p-4 flex items-center justify-between">
+        <div className="rounded-xl border border-tertiary/10 bg-white p-4 flex items-center justify-between gap-4">
           <div>
             <div className="text-sm text-neutral">
               Te queda{creditsRemaining === 1 ? "" : "n"}{" "}
               <strong>{creditsRemaining}</strong> evaluación
               {creditsRemaining === 1 ? "" : "es"} más.
             </div>
-            <div className="text-xs text-tertiary">Puedes agendar la siguiente cuando quieras.</div>
+            <div className="text-xs text-tertiary">
+              Podrás agendar la siguiente cuando termine esta o sea cancelada por el admin.
+            </div>
           </div>
-          {/* No se puede agendar otra mientras haya una activa según el flujo del spec.
-              El botón vuelve a /agendar pero el server le mostrará Estado C otra vez.
-              Cuando complete o cancele esta cita, podrá agendar la próxima. */}
         </div>
       )}
 

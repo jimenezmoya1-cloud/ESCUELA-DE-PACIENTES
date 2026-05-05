@@ -63,16 +63,19 @@ export function filterByBlocks(slots: string[], blocks: Pick<BlockEntry, "start_
 
 /**
  * Filtra los slots removiendo los que ya están reservados (citas activas).
- * Pure function.
+ * Pure function. Compara por milisegundos para evitar mismatch entre
+ * formatos ISO ("...Z" vs "...+00:00") que Supabase y JS toISOString producen.
  */
 export function filterByAppointments(
   slots: string[],
   appointments: Pick<Appointment, "starts_at" | "status">[],
 ): string[] {
-  const taken = new Set(
-    appointments.filter((a) => a.status === "scheduled").map((a) => a.starts_at),
+  const takenMs = new Set(
+    appointments
+      .filter((a) => a.status === "scheduled")
+      .map((a) => parseISO(a.starts_at).getTime()),
   )
-  return slots.filter((s) => !taken.has(s))
+  return slots.filter((s) => !takenMs.has(parseISO(s).getTime()))
 }
 
 /**
