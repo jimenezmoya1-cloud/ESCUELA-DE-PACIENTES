@@ -1397,11 +1397,16 @@ export async function adjustCredit(input: {
       if (!row) return { ok: false, error: "El paciente no tiene suficientes créditos para restar" }
 
       const take = Math.min(row.remaining, toRemove)
-      const { error: updErr } = await admin
+      const { data: updated, error: updErr } = await admin
         .from("evaluation_credits")
         .update({ remaining: row.remaining - take })
         .eq("id", row.id)
+        .eq("remaining", row.remaining)             // optimistic concurrency
+        .select("id")
       if (updErr) return { ok: false, error: updErr.message }
+      if (!updated || updated.length === 0) {
+        return { ok: false, error: "Conflicto de concurrencia: el crédito fue modificado por otra operación, intenta de nuevo" }
+      }
       toRemove -= take
     }
   }
@@ -1467,7 +1472,11 @@ export async function listPayments(input: {
       )
     : payments
 
-  return { ok: true, payments: filtered, total: count ?? 0 }
+  return {
+    ok: true,
+    payments: filtered,
+    total: input.search ? filtered.length : (count ?? 0),
+  }
 }
 ```
 
@@ -1512,7 +1521,7 @@ export default function PatientAutocomplete({
   const [results, setResults] = useState<PatientLite[]>([])
   const [open, setOpen] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const supabase = createClient()
+  const supabaseRef = useRef(createClient())
 
   useEffect(() => {
     if (!query || query.length < 2) {
@@ -1521,7 +1530,7 @@ export default function PatientAutocomplete({
     }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
-      const { data } = await supabase
+      const { data } = await supabaseRef.current
         .from("users")
         .select("id, name, email")
         .eq("role", "patient")
@@ -1529,7 +1538,7 @@ export default function PatientAutocomplete({
         .limit(10)
       setResults((data ?? []) as PatientLite[])
     }, 250)
-  }, [query, supabase])
+  }, [query])
 
   if (value) {
     return (
