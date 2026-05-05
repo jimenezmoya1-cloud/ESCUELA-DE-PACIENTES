@@ -54,17 +54,28 @@ export default function StaffList({ staff }: { staff: StaffMember[] }) {
               <td className="px-4 py-3">{s.medical_registration ?? "—"}</td>
               <td className="px-4 py-3">{s.email}</td>
               <td className="px-4 py-3">
-                <button
-                  onClick={() => handleToggle(s.id, !s.is_active)}
-                  disabled={pending}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                    s.is_active
-                      ? "bg-success/10 text-success hover:bg-success/20"
-                      : "bg-tertiary/10 text-tertiary hover:bg-tertiary/20"
-                  }`}
-                >
-                  {s.is_active ? "Activo" : "Inactivo"}
-                </button>
+                {/* Active clínicos: only deactivate via DeactivateClinicianButton (which fires
+                    notifications). The plain toggle would skip post-deactivation notify. */}
+                {s.role === "clinico" && s.is_active ? (
+                  // Active clinico: hide the toggle pill — DeactivateClinicianButton (added in Plan 5)
+                  // is the only path. We still show a static "Activo" label so the column isn't blank.
+                  <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                    Activo
+                  </span>
+                ) : (
+                  // All other cases (inactive users, admins, etc.): keep the toggle for activate/deactivate
+                  <button
+                    onClick={() => handleToggle(s.id, !s.is_active)}
+                    disabled={pending}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                      s.is_active
+                        ? "bg-success/10 text-success hover:bg-success/20"
+                        : "bg-tertiary/10 text-tertiary hover:bg-tertiary/20"
+                    }`}
+                  >
+                    {s.is_active ? "Activo" : "Inactivo"}
+                  </button>
+                )}
               </td>
               <td className="px-4 py-3">
                 {s.role === "clinico" && s.is_active && (
