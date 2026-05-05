@@ -57,7 +57,7 @@ export default async function CalendarioPage({
   return (
     <div className="space-y-4">
       <CitasFilters clinicians={clinicians} />
-      <CitasCalendarPageClient appointments={rows} />
+      <CitasCalendarPageClient appointments={rows} clinicians={clinicians} />
     </div>
   )
 }

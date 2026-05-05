@@ -74,11 +74,13 @@ export interface TaskSubmission {
 
 export interface Message {
   id: string
-  from_user_id: string
+  from_user_id: string | null
   to_user_id: string
   body: string
   sent_at: string
   read_at: string | null
+  is_system: boolean
+  message_kind: string | null
 }
 
 export interface Session {

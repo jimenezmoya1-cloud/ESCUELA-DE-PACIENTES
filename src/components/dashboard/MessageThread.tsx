@@ -89,6 +89,21 @@ export default function MessageThread({
           </div>
         ) : (
           messages.map((msg) => {
+            if (msg.is_system) {
+              return (
+                <div key={msg.id} className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-neutral my-2">
+                  <div className="flex items-start gap-2">
+                    <svg className="h-4 w-4 shrink-0 mt-0.5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h.01a1 1 0 100-2H10V9a1 1 0 00-1 0z" clipRule="evenodd" />
+                    </svg>
+                    <div className="flex-1">
+                      <div className="text-xs uppercase tracking-wide text-primary mb-0.5">CAIMED · Sistema</div>
+                      <div>{msg.body}</div>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
             const isMine = msg.from_user_id === currentUserId
             return (
               <div
@@ -104,7 +119,7 @@ export default function MessageThread({
                 >
                   {!isMine && (
                     <p className="mb-0.5 text-xs font-medium text-secondary">
-                      {adminMap[msg.from_user_id] ?? "Equipo CAIMED"}
+                      {adminMap[msg.from_user_id ?? ""] ?? "Equipo CAIMED"}
                     </p>
                   )}
                   <p className="text-sm whitespace-pre-wrap">{msg.body}</p>

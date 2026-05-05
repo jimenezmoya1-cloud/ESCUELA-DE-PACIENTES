@@ -78,6 +78,26 @@ export async function cancelAppointmentAction(input: {
     },
   })
 
+  // 5. Notificación (best-effort)
+  try {
+    const { data: aptFull } = await admin
+      .from("appointments")
+      .select("patient_id, starts_at")
+      .eq("id", input.appointmentId)
+      .single()
+    if (aptFull) {
+      const { notifyAppointmentCancelled } = await import("@/lib/notifications/triggers")
+      await notifyAppointmentCancelled({
+        patientId: aptFull.patient_id,
+        startsAtIso: aptFull.starts_at,
+        reason: input.reason.trim(),
+        creditReturned: input.returnCredit,
+      })
+    }
+  } catch (e) {
+    console.error("[cancel_appointment] notification failed:", e)
+  }
+
   revalidatePath("/admin/citas")
   return { ok: true }
 }
@@ -221,4 +241,107 @@ export async function rescheduleAppointmentAction(input: {
 
   revalidatePath("/admin/citas")
   return { ok: true }
+}
+
+export async function createManualAppointmentAction(input: {
+  patientId: string
+  clinicianId: string
+  startsAtIso: string
+  consumeCredit: boolean
+  note: string
+}): Promise<{ ok: true; appointmentId: string } | { ok: false; error: string }> {
+  const profile = await getCurrentProfile()
+  if (!isAdmin(profile)) return { ok: false, error: "No autorizado" }
+
+  if (!input.patientId || !input.clinicianId) return { ok: false, error: "Paciente y clínico son requeridos" }
+  if (parseISO(input.startsAtIso).getTime() < Date.now()) {
+    return { ok: false, error: "La fecha/hora no puede estar en el pasado" }
+  }
+
+  const admin = createAdminClient()
+
+  // 1. Validar paciente
+  const { data: patient, error: pErr } = await admin
+    .from("users").select("id, role").eq("id", input.patientId).single()
+  if (pErr || !patient) return { ok: false, error: "Paciente no encontrado" }
+  if (patient.role !== "patient") return { ok: false, error: "El usuario no es un paciente" }
+
+  // 2. Validar clínico activo
+  const { data: clinician, error: cErr } = await admin
+    .from("users").select("id, role, is_active").eq("id", input.clinicianId).single()
+  if (cErr || !clinician) return { ok: false, error: "Clínico no encontrado" }
+  if (clinician.role !== "clinico") return { ok: false, error: "El usuario no es un clínico" }
+  if (!clinician.is_active) return { ok: false, error: "El clínico está inactivo" }
+
+  // 3. Consumir crédito si aplica
+  let creditId: string | null = null
+  if (input.consumeCredit) {
+    try {
+      const { consumeOneCredit } = await import("@/lib/payments/credits")
+      const res = await consumeOneCredit(input.patientId)
+      creditId = res.creditId
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Error consumiendo crédito" }
+    }
+  }
+
+  // 4. Insert appointment
+  const endsAt = addMinutes(parseISO(input.startsAtIso), SLOT_DURATION_MIN).toISOString()
+  const { data: apt, error: aptErr } = await admin
+    .from("appointments")
+    .insert({
+      patient_id: input.patientId,
+      clinician_id: input.clinicianId,
+      starts_at: input.startsAtIso,
+      ends_at: endsAt,
+      status: "scheduled",
+      credit_id: creditId,
+    })
+    .select("id")
+    .single()
+
+  if (aptErr || !apt) {
+    // Compensar: si consumimos crédito, devolverlo
+    if (creditId) {
+      try {
+        const { returnOneCredit } = await import("@/lib/payments/credits")
+        await returnOneCredit(creditId)
+      } catch {}
+    }
+    return {
+      ok: false,
+      error: "Ese horario ya está tomado por otra cita del mismo clínico (UNIQUE constraint).",
+    }
+  }
+
+  // 5. Audit log
+  await admin.from("audit_log").insert({
+    actor_id: profile!.id,
+    action: "admin_create_manual_appointment",
+    target_type: "appointment",
+    target_id: apt.id,
+    metadata: {
+      patient_id: input.patientId,
+      clinician_id: input.clinicianId,
+      starts_at: input.startsAtIso,
+      consume_credit: input.consumeCredit,
+      credit_id: creditId,
+      note: input.note,
+    },
+  })
+
+  // 6. Notificar (best-effort)
+  try {
+    const { notifyBookingCreated } = await import("@/lib/notifications/triggers")
+    await notifyBookingCreated({
+      patientId: input.patientId,
+      clinicianId: input.clinicianId,
+      startsAtIso: input.startsAtIso,
+    })
+  } catch (e) {
+    console.error("[admin_create_manual_appointment] notification failed:", e)
+  }
+
+  revalidatePath("/admin/citas")
+  return { ok: true, appointmentId: apt.id }
 }

@@ -62,6 +62,27 @@ export async function bookSlotAction(slotStartIso: string): Promise<
 
   const result = await bookAppointment(profile.id, slotStartIso)
   if (result.ok) {
+    // Notificación best-effort. Cargamos los datos de la cita recién creada
+    // para tener clinician_id y starts_at.
+    try {
+      const { createAdminClient } = await import("@/lib/supabase/admin")
+      const { notifyBookingCreated } = await import("@/lib/notifications/triggers")
+      const admin = createAdminClient()
+      const { data: apt } = await admin
+        .from("appointments")
+        .select("clinician_id, starts_at")
+        .eq("id", result.appointmentId)
+        .single()
+      if (apt) {
+        await notifyBookingCreated({
+          patientId: profile.id,
+          clinicianId: apt.clinician_id,
+          startsAtIso: apt.starts_at,
+        })
+      }
+    } catch (e) {
+      console.error("[booking] notification failed:", e)
+    }
     revalidatePath("/agendar")
     return { ok: true, appointmentId: result.appointmentId }
   }
