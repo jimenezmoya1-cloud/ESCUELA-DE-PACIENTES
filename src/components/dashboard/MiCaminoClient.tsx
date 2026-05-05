@@ -20,11 +20,11 @@ export default function MiCaminoClient({
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[#212B52]">Mi Camino</h1>
+        <h2 className="text-2xl font-bold text-[#212B52]">Mi Camino</h2>
         <p className="mt-1 text-base text-tertiary">
           {hasAssessment
-            ? "Tu programa personalizado según tu última evaluación clínica"
-            : "Tu auxiliar de enfermería completará tu evaluación preventiva para personalizar tu camino"}
+            ? "Tu programa personalizado según tu última evaluación de salud"
+            : "Tu auxiliar de enfermería completará tu evaluación de salud para personalizar tu camino"}
         </p>
       </div>
 

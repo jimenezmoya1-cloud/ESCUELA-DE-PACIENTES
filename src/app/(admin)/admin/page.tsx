@@ -1,4 +1,16 @@
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentProfile } from "@/lib/auth/profile"
+import WelcomeHub, { type WelcomeAction } from "@/components/ui/WelcomeHub"
+import {
+  Users,
+  Calendar,
+  Building2,
+  Tag,
+  BookOpen,
+  UserCheck,
+  Settings,
+  MessageCircle,
+} from "lucide-react"
 
 export default async function AdminDashboardPage({
   searchParams,
@@ -7,6 +19,7 @@ export default async function AdminDashboardPage({
 }) {
   const { convenio } = await searchParams
   const supabase = await createClient()
+  const profile = await getCurrentProfile()
 
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
@@ -95,10 +108,30 @@ export default async function AdminDashboardPage({
       : 0,
   })) ?? []
 
+  const iconCls = "h-6 w-6"
+  const iconStroke = 1.75
+  const adminActions: WelcomeAction[] = [
+    { href: "/admin/pacientes", label: "Pacientes", description: `${totalPatients ?? 0} registrados`, icon: <Users className={iconCls} strokeWidth={iconStroke} />, accent: "primary" },
+    { href: "/admin/citas", label: "Citas", description: "Agenda y pagos", icon: <Calendar className={iconCls} strokeWidth={iconStroke} />, accent: "secondary" },
+    { href: "/admin/convenios", label: "Convenios", description: "Empresas aliadas", icon: <Building2 className={iconCls} strokeWidth={iconStroke} />, accent: "secondary" },
+    { href: "/admin/codigos", label: "Códigos de acceso", description: "Crear y gestionar", icon: <Tag className={iconCls} strokeWidth={iconStroke} />, accent: "success" },
+    { href: "/admin/contenido", label: "Contenido", description: "Módulos y lecciones", icon: <BookOpen className={iconCls} strokeWidth={iconStroke} />, accent: "primary" },
+    { href: "/admin/personal", label: "Personal", description: "Equipo clínico y admin", icon: <UserCheck className={iconCls} strokeWidth={iconStroke} />, accent: "warning" },
+    { href: "/admin/blog", label: "Blog", description: "Moderar publicaciones", icon: <MessageCircle className={iconCls} strokeWidth={iconStroke} />, accent: "secondary", badge: unansweredMessages ?? 0 },
+    { href: "/admin/configuracion", label: "Configuración", description: "Ajustes del sistema", icon: <Settings className={iconCls} strokeWidth={iconStroke} />, accent: "primary" },
+  ]
+
   return (
     <div>
+      <WelcomeHub
+        name={profile?.name ?? "Admin"}
+        roleLabel="Administrador"
+        subtitle="¿Qué quieres hacer hoy?"
+        actions={adminActions}
+      />
+
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-neutral">Dashboard</h1>
+        <h2 className="text-xl font-bold text-neutral">Resumen</h2>
 
         {/* Filtro por convenio */}
         <form method="GET" className="flex items-center gap-2">
@@ -150,20 +183,27 @@ export default async function AdminDashboardPage({
         {/* Por convenio */}
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <p className="mb-3 font-semibold text-neutral">Pacientes por convenio</p>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {Array.from(byConvenio.entries())
               .sort((a, b) => b[1] - a[1])
               .map(([code, count]) => {
                 const pct = totalPatients ? Math.round((count / totalPatients) * 100) : 0
                 return (
-                  <div key={code} className="flex items-center gap-3">
-                    <span className="w-20 shrink-0 font-mono text-xs font-bold text-primary">{code}</span>
-                    <div className="flex-1">
-                      <div className="h-2 overflow-hidden rounded-full bg-background">
-                        <div className="h-full rounded-full bg-secondary" style={{ width: `${pct}%` }} />
-                      </div>
+                  <div key={code}>
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      <span className="truncate font-mono text-xs font-bold text-primary" title={code}>
+                        {code}
+                      </span>
+                      <span className="shrink-0 text-xs text-tertiary tabular-nums">
+                        {count} ({pct}%)
+                      </span>
                     </div>
-                    <span className="w-16 text-right text-xs text-tertiary">{count} ({pct}%)</span>
+                    <div className="h-2 overflow-hidden rounded-full bg-background">
+                      <div
+                        className="h-full rounded-full bg-secondary transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
                 )
               })}
@@ -177,45 +217,22 @@ export default async function AdminDashboardPage({
       {/* Progreso por módulo */}
       <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
         <p className="mb-4 font-semibold text-neutral">Completación por módulo</p>
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {moduleProgress.map((mod) => (
-            <div key={mod.order} className="flex items-center gap-3">
-              <span className="w-5 shrink-0 text-center text-xs font-bold text-tertiary">{mod.order}</span>
-              <span className="w-56 shrink-0 truncate text-xs text-neutral">{mod.title}</span>
-              <div className="flex-1">
-                <div className="h-2 overflow-hidden rounded-full bg-background">
-                  <div className="h-full rounded-full bg-secondary transition-all" style={{ width: `${mod.pct}%` }} />
-                </div>
+            <div key={mod.order}>
+              <div className="mb-1 flex items-center gap-2">
+                <span className="w-5 shrink-0 text-center text-xs font-bold text-tertiary">{mod.order}</span>
+                <span className="flex-1 truncate text-xs text-neutral" title={mod.title}>{mod.title}</span>
+                <span className="shrink-0 text-xs text-tertiary tabular-nums">{mod.count} ({mod.pct}%)</span>
               </div>
-              <span className="w-20 text-right text-xs text-tertiary">{mod.count} ({mod.pct}%)</span>
+              <div className="h-2 overflow-hidden rounded-full bg-background">
+                <div className="h-full rounded-full bg-secondary transition-all" style={{ width: `${mod.pct}%` }} />
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Acciones rápidas */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { href: "/admin/pacientes", label: "Ver pacientes", sub: "Gestionar perfiles y progreso", color: "primary" },
-          { href: "/admin/convenios", label: "Convenios", sub: "Gestionar empresas aliadas", color: "secondary" },
-          { href: "/admin/codigos", label: "Códigos de acceso", sub: "Crear y gestionar códigos", color: "secondary" },
-          { href: "/admin/contenido", label: "Contenido", sub: "Módulos y lecciones", color: "success" },
-        ].map((item) => (
-          <a
-            key={item.href}
-            href={item.href}
-            className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-          >
-            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-${item.color}/10`}>
-              <div className={`h-2 w-2 rounded-full bg-${item.color}`} />
-            </div>
-            <div>
-              <p className="font-medium text-neutral">{item.label}</p>
-              <p className="text-xs text-tertiary">{item.sub}</p>
-            </div>
-          </a>
-        ))}
-      </div>
     </div>
   )
 }

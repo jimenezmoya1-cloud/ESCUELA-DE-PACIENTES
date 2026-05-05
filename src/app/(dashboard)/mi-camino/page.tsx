@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { buildAutoRoute, getModulesAllUnlocked } from "@/lib/modules"
 import MiCaminoClient from "@/components/dashboard/MiCaminoClient"
+import WelcomeHub, { type WelcomeAction } from "@/components/ui/WelcomeHub"
+import { Calendar, FileHeart, BookOpen, MessageCircle, Trophy } from "lucide-react"
 
 interface AssessmentComponent {
   nombre: string
@@ -18,6 +20,7 @@ export default async function MiCaminoPage() {
     { data: modules },
     { data: completions },
     { count: assessmentCount },
+    { data: profileRow },
   ] = await Promise.all([
     supabase
       .from("patient_clinical_profile")
@@ -44,6 +47,11 @@ export default async function MiCaminoPage() {
       .from("patient_assessments")
       .select("*", { count: "exact", head: true })
       .eq("user_id", userId),
+    supabase
+      .from("users")
+      .select("name")
+      .eq("id", userId)
+      .maybeSingle(),
   ])
 
   const assessmentComponents = (latestAssessment?.components ?? []) as AssessmentComponent[]
@@ -99,12 +107,60 @@ export default async function MiCaminoPage() {
   const pathModules = modulesWithStatus.slice(0, pathCount)
   const libraryModules = modulesWithStatus.slice(pathCount)
 
+  const iconCls = "h-6 w-6"
+  const iconStroke = 1.75
+  const patientActions: WelcomeAction[] = [
+    {
+      href: "/agendar",
+      label: "Agendar evaluación",
+      description: "Reserva tu próxima cita",
+      icon: <Calendar className={iconCls} strokeWidth={iconStroke} />,
+      accent: "primary",
+    },
+    {
+      href: "/mi-historia-clinica",
+      label: "Mi evaluación de salud",
+      description: latestAssessment ? "Ver resultados y reportes" : "Aún no tienes evaluaciones",
+      icon: <FileHeart className={iconCls} strokeWidth={iconStroke} />,
+      accent: "secondary",
+    },
+    {
+      href: "/comunidad",
+      label: "Comunidad",
+      description: "Conecta con otros pacientes",
+      icon: <MessageCircle className={iconCls} strokeWidth={iconStroke} />,
+      accent: "secondary",
+    },
+    {
+      href: "/recompensas",
+      label: "Mis recompensas",
+      description: "Logros y badges",
+      icon: <Trophy className={iconCls} strokeWidth={iconStroke} />,
+      accent: "warning",
+    },
+    {
+      href: "/progreso",
+      label: "Mi progreso",
+      description: "Tu avance en la escuela",
+      icon: <BookOpen className={iconCls} strokeWidth={iconStroke} />,
+      accent: "success",
+    },
+  ]
+
   return (
-    <MiCaminoClient
-      pathModules={pathModules}
-      libraryModules={libraryModules}
-      hasAssessment={!!latestAssessment}
-      userEmail={user?.email || ""}
-    />
+    <>
+      <WelcomeHub
+        name={profileRow?.name ?? "Paciente"}
+        roleLabel="Escuela de pacientes"
+        subtitle="¿Qué quieres hacer hoy?"
+        actions={patientActions}
+      />
+      <MiCaminoClient
+        pathModules={pathModules}
+        libraryModules={libraryModules}
+        hasAssessment={!!latestAssessment}
+        userEmail={user?.email || ""}
+      />
+    </>
   )
 }

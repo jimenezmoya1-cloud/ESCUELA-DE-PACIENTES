@@ -18,9 +18,9 @@ type NavGroup = {
   visibleTo: ReadonlyArray<"admin" | "clinico">
 }
 
-const dashboardIcon = (
+const homeIcon = (
   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3v-6h6v6h3a1 1 0 001-1V10" />
   </svg>
 )
 const contentIcon = (
@@ -70,12 +70,16 @@ const settingsIcon = (
   </svg>
 )
 
+const homeItemByRole: Record<"admin" | "clinico", NavItem> = {
+  admin: { href: "/admin", label: "Inicio", icon: homeIcon, exact: true },
+  clinico: { href: "/admin/clinico/dashboard", label: "Inicio", icon: homeIcon, exact: true },
+}
+
 const navGroups: NavGroup[] = [
   {
     label: "Escuela de pacientes",
     visibleTo: ["admin"],
     items: [
-      { href: "/admin", label: "Dashboard", icon: dashboardIcon, exact: true },
       { href: "/admin/contenido", label: "Contenido", icon: contentIcon },
       { href: "/admin/blog", label: "Blog", icon: blogIcon },
     ],
@@ -119,11 +123,22 @@ export default function AdminShell({
   const router = useRouter()
   const supabase = createClient()
 
-  const visibleGroups = navGroups.filter((g) =>
+  const homeItem =
     profile.role === "admin" || profile.role === "clinico"
-      ? g.visibleTo.includes(profile.role)
-      : false
-  )
+      ? homeItemByRole[profile.role]
+      : null
+
+  const visibleGroups = navGroups
+    .filter((g) =>
+      profile.role === "admin" || profile.role === "clinico"
+        ? g.visibleTo.includes(profile.role)
+        : false
+    )
+    .map((g) => ({
+      ...g,
+      items: homeItem ? g.items.filter((i) => i.href !== homeItem.href) : g.items,
+    }))
+    .filter((g) => g.items.length > 0)
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -177,6 +192,11 @@ export default function AdminShell({
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4">
+          {homeItem && (
+            <ul className="mb-6 space-y-1">
+              {renderNavItem(homeItem, false)}
+            </ul>
+          )}
           {visibleGroups.map((group) => (
             <div key={group.label} className="mb-6">
               {visibleGroups.length > 1 && (
@@ -216,6 +236,7 @@ export default function AdminShell({
         </header>
 
         <nav className="flex items-center gap-1 overflow-x-auto border-b border-tertiary/10 bg-white px-4 py-2 lg:hidden">
+          {homeItem && renderNavItem(homeItem, true)}
           {visibleGroups.flatMap((g) => g.items).map((item) => renderNavItem(item, true))}
         </nav>
 

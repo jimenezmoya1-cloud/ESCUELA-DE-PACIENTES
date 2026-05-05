@@ -2,6 +2,9 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { computeDashboard, type DashboardFilters } from "@/lib/clinical/dashboard-aggregations"
 import TrendChart from "@/components/admin/clinical/TrendChart"
+import { getCurrentProfile } from "@/lib/auth/profile"
+import WelcomeHub, { type WelcomeAction } from "@/components/ui/WelcomeHub"
+import { Users, Calendar, Stethoscope, FileHeart, ClipboardList } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -34,16 +37,38 @@ export default async function ClinicoDashboardPage({
   }
 
   const supabase = await createClient()
-  const data = await computeDashboard(supabase, filters)
+  const [data, profile] = await Promise.all([
+    computeDashboard(supabase, filters),
+    getCurrentProfile(),
+  ])
+
+  const iconCls = "h-6 w-6"
+  const iconStroke = 1.75
+  const clinicoActions: WelcomeAction[] = [
+    { href: "/admin/pacientes", label: "Mis pacientes", description: `${data.kpis.totalPatients} en cohorte`, icon: <Users className={iconCls} strokeWidth={iconStroke} />, accent: "primary" },
+    { href: "/admin/clinico/disponibilidad", label: "Mi disponibilidad", description: "Configurar agenda", icon: <Calendar className={iconCls} strokeWidth={iconStroke} />, accent: "secondary" },
+    { href: "/admin/citas", label: "Citas", description: "Próximas evaluaciones", icon: <ClipboardList className={iconCls} strokeWidth={iconStroke} />, accent: "secondary" },
+    { href: "/admin/pacientes", label: "Nueva evaluación", description: "Registrar evaluación de salud", icon: <FileHeart className={iconCls} strokeWidth={iconStroke} />, accent: "success" },
+  ]
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-2xl font-semibold text-neutral mb-1">Dashboard clínico</h1>
-        <p className="text-sm text-tertiary">
-          Métricas agregadas sobre la última evaluación de salud de cada paciente.{" "}
-          {data.kpis.totalAssessments} evaluaciones · {data.kpis.totalPatients} pacientes en cohorte filtrada.
-        </p>
+      <WelcomeHub
+        name={profile?.name ?? "Doctor"}
+        roleLabel="Clínico"
+        subtitle="¿Qué quieres hacer hoy?"
+        actions={clinicoActions}
+      />
+
+      <header className="flex items-center gap-3">
+        <Stethoscope className="h-5 w-5 text-tertiary" strokeWidth={1.75} />
+        <div>
+          <h2 className="text-xl font-semibold text-neutral">Resumen clínico</h2>
+          <p className="text-sm text-tertiary">
+            Métricas agregadas sobre la última evaluación de salud de cada paciente.{" "}
+            {data.kpis.totalAssessments} evaluaciones · {data.kpis.totalPatients} pacientes en cohorte filtrada.
+          </p>
+        </div>
       </header>
 
       {/* Filtros globales */}

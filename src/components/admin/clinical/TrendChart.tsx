@@ -10,10 +10,10 @@ export default function TrendChart({ trend }: { trend: MonthlyTrend }) {
   }))
 
   return (
-    <div className="bg-white rounded-xl border border-tertiary/15 p-4 shadow-sm">
+    <div className="bg-white rounded-xl border border-tertiary/15 p-4 shadow-sm min-w-0">
       <h4 className="text-sm font-semibold text-neutral mb-3">{trend.title}</h4>
-      <div className="h-56">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-56 w-full min-w-0">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
           <LineChart data={data} margin={{ top: 5, right: 12, bottom: 5, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#64748b" />
