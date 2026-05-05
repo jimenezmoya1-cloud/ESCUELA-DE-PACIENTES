@@ -33,6 +33,7 @@
 - `src/app/(admin)/admin/configuracion/actions.ts` — server actions `updateAppConfig`.
 - `src/components/admin/ConfiguracionForm.tsx` — client component con campos editables.
 - `src/app/(admin)/admin/citas/layout.tsx` — layout con tabs.
+- `src/components/admin/CitasTabs.tsx` — client component que resalta el tab activo vía `usePathname()`.
 - `src/app/(admin)/admin/citas/page.tsx` — redirect a `/admin/citas/pagos`.
 - `src/app/(admin)/admin/citas/calendario/page.tsx` — placeholder ("Disponible en Plan 3").
 - `src/app/(admin)/admin/citas/tabla/page.tsx` — placeholder ("Disponible en Plan 3").
@@ -1135,23 +1136,59 @@ git commit -m "feat(scheduling): add ConfiguracionForm client component"
 **Files:**
 - Create: `src/app/(admin)/admin/citas/layout.tsx`
 - Create: `src/app/(admin)/admin/citas/page.tsx`
+- Create: `src/components/admin/CitasTabs.tsx` _(agregado en revisión final: client component necesario para `usePathname()`)_
 
-- [ ] **Step 1: Crear layout con navegación de tabs**
+- [ ] **Step 1: Crear client component `CitasTabs` para la navegación de tabs**
 
 ```tsx
+"use client"
+
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+
+const tabs = [
+  { href: "/admin/citas/calendario", label: "Calendario" },
+  { href: "/admin/citas/tabla", label: "Tabla de citas" },
+  { href: "/admin/citas/pagos", label: "Pagos y créditos" },
+]
+
+export default function CitasTabs() {
+  const pathname = usePathname()
+  return (
+    <nav className="flex gap-1 border-b border-tertiary/10">
+      {tabs.map((t) => {
+        const active = pathname.startsWith(t.href)
+        return (
+          <Link
+            key={t.href}
+            href={t.href}
+            className={`rounded-t-lg px-4 py-2 text-sm font-medium ${
+              active
+                ? "border-b-2 border-primary text-primary"
+                : "text-tertiary hover:text-neutral"
+            }`}
+          >
+            {t.label}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+```
+
+> **Nota:** `usePathname()` es un hook de cliente y no puede usarse en un Server Component. Por eso la nav se extrae a `CitasTabs.tsx` con `"use client"`.
+
+- [ ] **Step 2: Crear layout usando `<CitasTabs />`**
+
+```tsx
 import { redirect } from "next/navigation"
 import { getCurrentProfile, isAdmin } from "@/lib/auth/profile"
+import CitasTabs from "@/components/admin/CitasTabs"
 
 export default async function CitasLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile()
   if (!isAdmin(profile)) redirect("/admin")
-
-  const tabs = [
-    { href: "/admin/citas/calendario", label: "Calendario" },
-    { href: "/admin/citas/tabla", label: "Tabla de citas" },
-    { href: "/admin/citas/pagos", label: "Pagos y créditos" },
-  ]
 
   return (
     <div className="space-y-6 p-6">
@@ -1162,25 +1199,13 @@ export default async function CitasLayout({ children }: { children: React.ReactN
         </p>
       </header>
 
-      <nav className="flex gap-1 border-b border-tertiary/10">
-        {tabs.map((t) => (
-          <Link
-            key={t.href}
-            href={t.href}
-            className="rounded-t-lg px-4 py-2 text-sm font-medium text-tertiary hover:text-neutral data-[active=true]:border-b-2 data-[active=true]:border-primary data-[active=true]:text-primary"
-          >
-            {t.label}
-          </Link>
-        ))}
-      </nav>
+      <CitasTabs />
 
       <div>{children}</div>
     </div>
   )
 }
 ```
-
-> **Nota:** el `data-[active=true]` es estático aquí — Plan 1 no necesita resaltar el tab activo (es un nice-to-have). En Plan 3 cuando se itere sobre la UI se puede agregar `usePathname()` en un componente cliente para resaltar.
 
 - [ ] **Step 2: Crear page.tsx que redirige a la tab por defecto**
 
