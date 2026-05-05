@@ -12,6 +12,9 @@ import { countries } from '@/lib/clinical/data/countries';
 import { REGIMEN_AFILIACION, EPS_LIST, PREPAGADAS_LIST, PLAN_COMPLEMENTARIO_LIST } from '@/lib/clinical/data/colombia-health';
 import AntecedentesStep from './AntecedentesStep';
 import type { Cie10Selection } from '@/lib/clinical/data/cie10';
+import ScoreChip from './ScoreChip';
+import { computeChipScore } from '@/lib/clinical/scoring';
+import type { ContextoClinico } from '@/lib/clinical/types';
 import { motion, useReducedMotion } from 'framer-motion';
 
 const getCaimedMessage = (step: number) => {
@@ -187,6 +190,24 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
     phq9Difficulty: 0,
     medas: Array(8).fill(-1)
   });
+
+  // EP-5: chip context — el chip muestra valor sin contexto SCA/DM2 (lo ignoramos
+  // en captura porque depende del input del médico en ClinicalHistoryClient).
+  const chipContexto: ContextoClinico = {
+    isSCA: false,
+    isDM2: false,
+    isPluripatologico: false,
+    isPocaExpectativa: false,
+    edad: 0,
+    takesMeds: formData.takesMeds === true,
+    iiefAplica: formData.gender === 'Masculino' && formData.hasSexualActivity === true,
+  };
+  const chipFor = (name: string) => {
+    const result = computeChipScore(name, formData as unknown as Record<string, unknown>, chipContexto);
+    return result
+      ? { label: result.label, displayValue: result.displayValue, score: result.score }
+      : { label: 'Pendiente', displayValue: null, score: null };
+  };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState('');
@@ -718,9 +739,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <User className="w-6 h-6 text-blue-600" /> Apoyo Social (MSPSS)
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <User className="w-6 h-6 text-blue-600" /> Apoyo Social (MSPSS)
+              </h2>
+              <ScoreChip {...chipFor('Red de apoyo')} />
+            </div>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
               {mspssQuestions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -777,9 +801,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Empoderamiento en Salud (HES)
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Empoderamiento en Salud (HES)
+              </h2>
+              <ScoreChip {...chipFor('Empoderamiento')} />
+            </div>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
               {hesQuestions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -870,9 +897,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 8:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Pill className="w-6 h-6 text-blue-600" /> Acceso a Medicamentos
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Pill className="w-6 h-6 text-blue-600" /> Acceso a Medicamentos
+              </h2>
+              <ScoreChip {...chipFor('Acceso a medicamentos')} />
+            </div>
             <div className="space-y-4">
               <p className="text-slate-600 font-medium">¿Usted tiene acceso a los medicamentos que le son formulados?</p>
               
@@ -945,9 +975,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Package className="w-6 h-6 text-blue-600" /> Adherencia
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Package className="w-6 h-6 text-blue-600" /> Adherencia
+              </h2>
+              <ScoreChip {...chipFor('Adherencia a medicamentos')} />
+            </div>
             <p className="text-slate-600 font-medium">Cuando le formulan algún medicamento...</p>
             
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
@@ -993,9 +1026,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 10:
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <HeartPulse className="w-6 h-6 text-blue-600" /> Signos Vitales
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <HeartPulse className="w-6 h-6 text-blue-600" /> Signos Vitales
+              </h2>
+              <ScoreChip {...chipFor('Presión arterial')} />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Presión Arterial Sistólica (PAS) *</label>
@@ -1048,10 +1084,13 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
 
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[60vh] overflow-y-auto pr-2">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Ruler className="w-6 h-6 text-blue-600" /> Antropometría
-            </h2>
-            
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Ruler className="w-6 h-6 text-blue-600" /> Antropometría
+              </h2>
+              <ScoreChip {...chipFor('Peso')} />
+            </div>
+
             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
               <label className="block text-lg font-bold text-slate-700 mb-4 flex justify-between items-center">
                 <span>¿Cuánto mides? (m)</span>
@@ -1119,10 +1158,16 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 12:
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[60vh] overflow-y-auto pr-2">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Paraclínicos
-            </h2>
-            
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Paraclínicos
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                <ScoreChip {...chipFor('Colesterol')} />
+                <ScoreChip {...chipFor('Glucosa')} />
+              </div>
+            </div>
+
             <div className="border-t border-slate-200 pt-4">
               <h3 className="text-lg font-bold text-slate-800 mb-4">Perfil Lipídico</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1231,9 +1276,14 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Salud Sexual
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Salud Sexual
+              </h2>
+              {formData.gender === 'Masculino' && formData.hasSexualActivity === true && (
+                <ScoreChip {...chipFor('Disfunción eréctil')} />
+              )}
+            </div>
             <p className="text-slate-600 font-medium">¿Tienes actividad sexual?</p>
             <div className="grid grid-cols-2 gap-4">
               <button
@@ -1335,9 +1385,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 15:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Tabaquismo
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Tabaquismo
+              </h2>
+              <ScoreChip {...chipFor('Nicotina')} />
+            </div>
             <p className="text-slate-600 font-medium mb-4">¿Cuál es tu situación actual?</p>
             <div className="space-y-2">
               {[
@@ -1384,9 +1437,15 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 16: {
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[60vh] overflow-y-auto pr-2">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Dumbbell className="w-6 h-6 text-blue-600" /> Actividad Física y Sueño
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Dumbbell className="w-6 h-6 text-blue-600" /> Actividad Física y Sueño
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                <ScoreChip {...chipFor('Actividad física')} />
+                <ScoreChip {...chipFor('Sueño')} />
+              </div>
+            </div>
 
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
               <label className="block text-slate-700 font-bold mb-2" htmlFor="activity-minutes">
@@ -1451,9 +1510,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Salud Mental (PHQ-9)
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Salud Mental (PHQ-9)
+              </h2>
+              <ScoreChip {...chipFor('Salud mental')} />
+            </div>
             <p className="text-slate-600 font-medium">Durante las últimas 2 semanas, ¿qué tan a menudo le han afectado alguno de los siguientes problemas?</p>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
               {phq9Questions.map((q, idx) => (
@@ -1596,9 +1658,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Evaluación de alimentación
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Evaluación de alimentación
+              </h2>
+              <ScoreChip {...chipFor('Alimentación')} />
+            </div>
             <p className="text-slate-600 font-medium">Menor puntaje = mejor patrón alimentario.</p>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
               {foodQuestions.map((item, idx) => (
