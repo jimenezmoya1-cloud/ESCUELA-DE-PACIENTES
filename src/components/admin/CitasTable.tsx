@@ -14,7 +14,7 @@ const STATUS_LABEL: Record<AppointmentWithJoin["status"], string> = {
   no_show: "No asistió",
 }
 
-export default function CitasTable({ rows }: { rows: AppointmentWithJoin[] }) {
+export default function CitasTable({ rows, clinicians }: { rows: AppointmentWithJoin[]; clinicians: { id: string; name: string }[] }) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -117,6 +117,7 @@ export default function CitasTable({ rows }: { rows: AppointmentWithJoin[] }) {
 
       <CitaDrawerAdmin
         appointment={selected}
+        clinicians={clinicians}
         onClose={() => setSelected(null)}
         onChanged={() => {
           setSelected(null)        // close drawer too

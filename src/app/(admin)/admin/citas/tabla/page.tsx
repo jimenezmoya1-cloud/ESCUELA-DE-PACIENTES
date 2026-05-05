@@ -53,7 +53,7 @@ export default async function TablaPage({
   return (
     <div className="space-y-4">
       <CitasFilters clinicians={clinicians} />
-      <CitasTable rows={rows} />
+      <CitasTable rows={rows} clinicians={clinicians} />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import type { AppointmentWithJoin } from "@/lib/scheduling/admin"
 import CancelAppointmentModal from "./CancelAppointmentModal"
 import MarkNoShowModal from "./MarkNoShowModal"
 import RescheduleAppointmentModal from "./RescheduleAppointmentModal"
+import ReassignClinicianModal from "./ReassignClinicianModal"
 
 const STATUS_LABEL: Record<AppointmentWithJoin["status"], string> = {
   scheduled: "Programada",
@@ -15,16 +16,20 @@ const STATUS_LABEL: Record<AppointmentWithJoin["status"], string> = {
   no_show: "No asistió",
 }
 
+interface ClinicianOption { id: string; name: string }
+
 interface Props {
   appointment: AppointmentWithJoin | null
+  clinicians: ClinicianOption[]
   onClose: () => void
   onChanged: () => void
 }
 
-export default function CitaDrawerAdmin({ appointment, onClose, onChanged }: Props) {
+export default function CitaDrawerAdmin({ appointment, clinicians, onClose, onChanged }: Props) {
   const [showCancel, setShowCancel] = useState(false)
   const [showNoShow, setShowNoShow] = useState(false)
   const [showReschedule, setShowReschedule] = useState(false)
+  const [showReassign, setShowReassign] = useState(false)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -108,6 +113,13 @@ export default function CitaDrawerAdmin({ appointment, onClose, onChanged }: Pro
               </button>
               <button
                 type="button"
+                onClick={() => setShowReassign(true)}
+                className="block w-full rounded-lg border border-primary/30 bg-white px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5"
+              >
+                Reasignar a otro clínico
+              </button>
+              <button
+                type="button"
                 onClick={() => setShowNoShow(true)}
                 className="block w-full rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
               >
@@ -142,6 +154,14 @@ export default function CitaDrawerAdmin({ appointment, onClose, onChanged }: Pro
         open={showReschedule}
         onClose={() => setShowReschedule(false)}
         appointmentId={appointment.id}
+        onSuccess={onChanged}
+      />
+      <ReassignClinicianModal
+        open={showReassign}
+        onClose={() => setShowReassign(false)}
+        appointmentId={appointment.id}
+        currentClinicianId={appointment.clinician_id}
+        clinicians={clinicians}
         onSuccess={onChanged}
       />
     </>

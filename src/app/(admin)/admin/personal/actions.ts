@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getCurrentProfile, isAdmin } from "@/lib/auth/profile"
+import { notifyAfterDeactivation, type DeactivationOutcome } from "@/lib/scheduling/post-deactivation-notify"
 
 export type CreateStaffInput = {
   fullName: string
@@ -77,4 +78,53 @@ export async function toggleStaffActive(userId: string, nextValue: boolean): Pro
 
   revalidatePath("/admin/personal")
   return { ok: true }
+}
+
+export async function deactivateClinicianAction(
+  clinicianId: string,
+): Promise<{ ok: true; outcome: DeactivationOutcome } | { ok: false; error: string }> {
+  const profile = await getCurrentProfile()
+  if (!isAdmin(profile)) return { ok: false, error: "No autorizado" }
+
+  const supabase = createAdminClient()
+
+  // Verificar que es un clínico activo
+  const { data: target, error: readErr } = await supabase
+    .from("users")
+    .select("id, role, is_active, name")
+    .eq("id", clinicianId)
+    .single()
+  if (readErr || !target) return { ok: false, error: "Usuario no encontrado" }
+  if (target.role !== "clinico") return { ok: false, error: "El usuario no es un clínico" }
+  if (!target.is_active) return { ok: false, error: "El clínico ya está inactivo" }
+
+  // Flip is_active=false. El trigger SQL hace la reasignación + audit log.
+  const { error: updErr } = await supabase
+    .from("users")
+    .update({ is_active: false })
+    .eq("id", clinicianId)
+  if (updErr) return { ok: false, error: `Error desactivando: ${updErr.message}` }
+
+  // Audit del admin (separado de los entries del trigger, que tienen actor_id=null)
+  await supabase.from("audit_log").insert({
+    actor_id: profile!.id,
+    action: "admin_deactivate_clinician",
+    target_type: "user",
+    target_id: clinicianId,
+    metadata: { name: target.name },
+  })
+
+  // Disparar notificaciones para los clínicos a los que se les asignaron citas
+  let outcome: DeactivationOutcome
+  try {
+    outcome = await notifyAfterDeactivation(clinicianId)
+  } catch (e) {
+    console.error("[deactivate clinician] post-notify failed:", e)
+    outcome = { reassignedCount: 0, orphanedCount: 0 }
+  }
+
+  revalidatePath("/admin/personal")
+  revalidatePath("/admin/citas")
+  revalidatePath("/admin")
+  return { ok: true, outcome }
 }

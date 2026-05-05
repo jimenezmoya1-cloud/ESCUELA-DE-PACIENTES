@@ -99,6 +99,7 @@ const navGroups: NavGroup[] = [
     visibleTo: ["admin"],
     items: [
       { href: "/admin/configuracion", label: "Configuración", icon: settingsIcon },
+      { href: "/admin/auditoria", label: "Auditoría", icon: settingsIcon },
     ],
   },
   {
