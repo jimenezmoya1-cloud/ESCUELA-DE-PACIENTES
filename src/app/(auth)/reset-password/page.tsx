@@ -50,22 +50,20 @@ export default function ResetPasswordPage() {
 
   if (success) {
     return (
-      <div className="glass-card rounded-3xl p-8">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
-            <svg className="h-8 w-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="mb-2 text-xl font-semibold text-neutral">Contraseña actualizada</h2>
-          <p className="text-sm text-tertiary">Redirigiendo a su panel...</p>
+      <div className="text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+          <svg className="h-8 w-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
         </div>
+        <h2 className="mb-2 text-xl font-semibold text-neutral">Contraseña actualizada</h2>
+        <p className="text-sm text-tertiary">Redirigiendo a su panel...</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-2xl bg-white p-8 shadow-sm">
+    <div>
       <h2 className="mb-6 text-xl font-semibold text-neutral">Nueva contraseña</h2>
 
       {error && (

@@ -84,31 +84,29 @@ export default function LoginPage() {
 
   if (resetSent) {
     return (
-      <div className="glass-card rounded-3xl p-8">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
-            <svg className="h-8 w-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <h2 className="mb-2 text-xl font-semibold text-neutral">Revise su correo</h2>
-          <p className="mb-6 text-sm text-tertiary">
-            Enviamos un enlace de recuperación a <strong>{email}</strong>.
-            Revise su bandeja de entrada y siga las instrucciones.
-          </p>
-          <button
-            onClick={() => { setResetMode(false); setResetSent(false) }}
-            className="text-sm text-secondary hover:underline"
-          >
-            Volver al inicio de sesión
-          </button>
+      <div className="text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+          <svg className="h-8 w-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
         </div>
+        <h2 className="mb-2 text-xl font-semibold text-neutral">Revise su correo</h2>
+        <p className="mb-6 text-sm text-tertiary">
+          Enviamos un enlace de recuperación a <strong>{email}</strong>.
+          Revise su bandeja de entrada y siga las instrucciones.
+        </p>
+        <button
+          onClick={() => { setResetMode(false); setResetSent(false) }}
+          className="text-sm text-secondary hover:underline"
+        >
+          Volver al inicio de sesión
+        </button>
       </div>
     )
   }
 
   return (
-    <div className="rounded-2xl bg-white p-8 shadow-sm">
+    <div>
       <h2 className="mb-6 text-xl font-semibold text-neutral">
         {resetMode ? "Recuperar contraseña" : "Iniciar sesión"}
       </h2>
