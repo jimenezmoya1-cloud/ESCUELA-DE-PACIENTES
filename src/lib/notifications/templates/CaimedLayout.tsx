@@ -110,7 +110,7 @@ export default function CaimedLayout({ preheader, children }: Props) {
           {/* Header con wordmark tipográfico */}
           <Section style={headerStyle}>
             <Heading as="h1" style={wordmarkStyle}>
-              CaimeD<span style={wordmarkRegStyle}>®</span>
+              CAIMED<span style={wordmarkRegStyle}>®</span>
             </Heading>
             <div style={ornamentStyle}></div>
             <Text style={taglineStyle}>Medicina Preventiva</Text>
@@ -127,7 +127,7 @@ export default function CaimedLayout({ preheader, children }: Props) {
           {/* Footer */}
           <Section style={footerStyle}>
             <Text style={footerBrandStyle}>
-              CaimeD<sup style={{ fontSize: "8px", verticalAlign: "super" }}>®</sup> Medicina Preventiva
+              CAIMED<sup style={{ fontSize: "8px", verticalAlign: "super" }}>®</sup> Medicina Preventiva
             </Text>
             <Text style={footerTextStyle}>
               Este es un mensaje automático. Si tienes preguntas, responde a este correo o entra a la sección de Mensajes en la plataforma.
