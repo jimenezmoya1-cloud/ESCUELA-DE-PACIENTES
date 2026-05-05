@@ -192,11 +192,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
     medas: Array(8).fill(-1)
   });
 
-  // EP-5: chip context — el chip muestra valor sin contexto SCA/DM2 (lo ignoramos
-  // en captura porque depende del input del médico en ClinicalHistoryClient).
+  // EP-5: chip context — derivamos isSCA/isDM2 de los antecedentes capturados
+  // (mismo cálculo que líneas 222-223). isPluripatologico/isPocaExpectativa los
+  // marca el médico en ClinicalHistoryClient, no en captura, así que default false.
   const chipContexto: ContextoClinico = {
-    isSCA: false,
-    isDM2: false,
+    isSCA: formData.diseases.includes('Infarto cardiaco') || formData.diseases.includes('Trombosis cerebral'),
+    isDM2: formData.diseases.includes('Diabetes'),
     isPluripatologico: false,
     isPocaExpectativa: false,
     edad: 0,

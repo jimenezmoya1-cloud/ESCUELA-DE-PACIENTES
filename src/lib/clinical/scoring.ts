@@ -273,10 +273,11 @@ export interface ChipResult {
 }
 
 const computeIMC = (weightStr: string, heightStr: string): number | null => {
+  // El cuestionario captura altura en METROS (input "¿Cuánto mides? (m)").
+  // No dividimos por 100 — el valor ya viene en metros.
   const w = parseFloat(weightStr)
-  const hCm = parseFloat(heightStr)
-  if (!w || !hCm) return null
-  const hM = hCm / 100
+  const hM = parseFloat(heightStr)
+  if (!w || !hM) return null
   return Math.round((w / (hM * hM)) * 10) / 10
 }
 
