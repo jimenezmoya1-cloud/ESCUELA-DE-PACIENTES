@@ -34,22 +34,47 @@ const COMPONENT_VISUAL: Record<string, NodeVisual> = {
 
 const DEFAULT_VISUAL: NodeVisual = { icon: BookOpen, gradient: "from-slate-500 to-slate-700" }
 
+// Mapas de clases literales para que el JIT de Tailwind las incluya.
+const GRID_COLS: Record<number, string> = {
+  1: "lg:grid-cols-1",
+  2: "lg:grid-cols-2",
+  3: "lg:grid-cols-3",
+  4: "lg:grid-cols-4",
+}
+
+// Inset horizontal de la línea conectora alineado al centro del primer y
+// último ícono según el número de columnas (icono centrado = (i+0.5)/N).
+const LINE_INSET: Record<number, string> = {
+  2: "lg:left-[25%] lg:right-[25%]",
+  3: "lg:left-[16.67%] lg:right-[16.67%]",
+  4: "lg:left-[12.5%] lg:right-[12.5%]",
+}
+
 export default function ModulePathHorizontal({ modules }: { modules: ModuleWithStatus[] }) {
   if (modules.length === 0) return null
+
+  const count = modules.length
+  const hasInicio = modules[0]?.component_key === "empowerment"
+  const gridCols = GRID_COLS[count] ?? "lg:grid-cols-4"
+  const lineInset = LINE_INSET[count] ?? "lg:left-[12.5%] lg:right-[12.5%]"
 
   return (
     <div className="relative">
       {/* Línea conectora — escritorio: horizontal; móvil: vertical */}
-      <div
-        aria-hidden
-        className="absolute hidden lg:block lg:left-[10%] lg:right-[10%] lg:top-[44px] lg:h-1 lg:rounded-full bg-gradient-to-r from-indigo-200 via-blue-200 to-emerald-200"
-      />
-      <div
-        aria-hidden
-        className="absolute left-[44px] top-12 bottom-12 w-1 rounded-full bg-gradient-to-b from-indigo-200 via-blue-200 to-emerald-200 lg:hidden"
-      />
+      {count >= 2 && (
+        <>
+          <div
+            aria-hidden
+            className={`absolute hidden lg:block ${lineInset} lg:top-[44px] lg:h-1 lg:rounded-full bg-gradient-to-r from-indigo-200 via-blue-200 to-emerald-200`}
+          />
+          <div
+            aria-hidden
+            className="absolute left-[44px] top-12 bottom-12 w-1 rounded-full bg-gradient-to-b from-indigo-200 via-blue-200 to-emerald-200 lg:hidden"
+          />
+        </>
+      )}
 
-      <div className="relative grid grid-cols-1 gap-6 lg:grid-cols-4 lg:gap-4">
+      <div className={`relative grid grid-cols-1 gap-6 ${gridCols} lg:gap-4`}>
         {modules.map((mod, idx) => {
           const visual = (mod.component_key ? COMPONENT_VISUAL[mod.component_key] : undefined) ?? DEFAULT_VISUAL
           const Icon = visual.icon
@@ -57,7 +82,9 @@ export default function ModulePathHorizontal({ modules }: { modules: ModuleWithS
           const subTotal = mod.submodules_total ?? 0
           const subDone = mod.submodules_completed ?? 0
           const progress = subTotal > 0 ? Math.round((subDone / subTotal) * 100) : (isCompleted ? 100 : 0)
-          const stepLabel = idx === 0 ? "Inicio" : `Prioridad ${idx}`
+          const stepLabel = hasInicio
+            ? idx === 0 ? "Inicio" : `Prioridad ${idx}`
+            : `Prioridad ${idx + 1}`
 
           return (
             <Link
