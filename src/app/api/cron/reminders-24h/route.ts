@@ -13,8 +13,13 @@ export const dynamic = "force-dynamic"
  * Protegido con header `Authorization: Bearer ${CRON_SECRET}`.
  */
 export async function GET(req: NextRequest) {
+  const secret = process.env.CRON_SECRET
+  if (!secret) {
+    console.error("[cron 24h] CRON_SECRET not configured — endpoint disabled")
+    return NextResponse.json({ error: "misconfigured" }, { status: 500 })
+  }
   const auth = req.headers.get("authorization")
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 

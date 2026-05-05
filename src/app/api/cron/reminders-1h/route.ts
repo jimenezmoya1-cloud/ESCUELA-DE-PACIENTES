@@ -11,8 +11,13 @@ export const dynamic = "force-dynamic"
  * reminder_1h_sent_at. Manda recordatorio + marca timestamp.
  */
 export async function GET(req: NextRequest) {
+  const secret = process.env.CRON_SECRET
+  if (!secret) {
+    console.error("[cron 1h] CRON_SECRET not configured — endpoint disabled")
+    return NextResponse.json({ error: "misconfigured" }, { status: 500 })
+  }
   const auth = req.headers.get("authorization")
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 
