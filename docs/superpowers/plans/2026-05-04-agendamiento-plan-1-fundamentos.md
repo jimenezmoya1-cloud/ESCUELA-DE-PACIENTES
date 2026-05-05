@@ -720,19 +720,22 @@ export async function consumeOneCredit(patientId: string): Promise<{ creditId: s
   if (!candidate) throw new Error("Sin créditos disponibles")
 
   const newRemaining = candidate.remaining - 1
-  const { error: updErr } = await admin
+  const { data: updated, error: updErr } = await admin
     .from("evaluation_credits")
     .update({ remaining: newRemaining })
     .eq("id", candidate.id)
     .eq("remaining", candidate.remaining)            // optimistic concurrency
+    .select("id")
   if (updErr) throw new Error(`Error consumiendo crédito: ${updErr.message}`)
+  if (!updated || updated.length === 0) {
+    throw new Error("Conflicto de concurrencia: el crédito fue modificado por otra operación, intenta de nuevo")
+  }
   return { creditId: candidate.id, remaining: newRemaining }
 }
 
 /** Devuelve 1 crédito a un crédito específico. Usado al cancelar una cita con reembolso de crédito. */
 export async function returnOneCredit(creditId: string): Promise<void> {
   const admin = createAdminClient()
-  // Incrementar remaining en 1, sin pasar amount
   const { data: row, error: selErr } = await admin
     .from("evaluation_credits")
     .select("amount, remaining")
@@ -743,11 +746,16 @@ export async function returnOneCredit(creditId: string): Promise<void> {
   if (row.remaining >= row.amount) {
     throw new Error("El crédito ya está al máximo")
   }
-  const { error: updErr } = await admin
+  const { data: updated, error: updErr } = await admin
     .from("evaluation_credits")
     .update({ remaining: row.remaining + 1 })
     .eq("id", creditId)
+    .eq("remaining", row.remaining)                    // optimistic concurrency
+    .select("id")
   if (updErr) throw new Error(`Error devolviendo crédito: ${updErr.message}`)
+  if (!updated || updated.length === 0) {
+    throw new Error("Conflicto de concurrencia al devolver crédito, intenta de nuevo")
+  }
 }
 ```
 
