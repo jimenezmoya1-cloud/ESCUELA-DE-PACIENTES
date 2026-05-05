@@ -69,7 +69,7 @@ export default function RegistroPage() {
   }
 
   return (
-    <div className="rounded-2xl bg-white p-8 shadow-sm">
+    <div className="glass-card rounded-3xl p-8">
       <h2 className="mb-1 text-xl font-semibold text-neutral">Crear cuenta</h2>
       <p className="mb-6 text-sm text-tertiary">
         Ingrese su número de documento para iniciar.

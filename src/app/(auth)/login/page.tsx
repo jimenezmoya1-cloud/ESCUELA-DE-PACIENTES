@@ -84,7 +84,7 @@ export default function LoginPage() {
 
   if (resetSent) {
     return (
-      <div className="rounded-2xl bg-white p-8 shadow-sm">
+      <div className="glass-card rounded-3xl p-8">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
             <svg className="h-8 w-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -131,7 +131,7 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="juan@ejemplo.com"
             required
-            className="w-full rounded-lg border border-tertiary/30 px-4 py-3 text-neutral placeholder:text-tertiary/50 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+            className="w-full rounded-lg border border-white/60 bg-white/70 px-4 py-3 text-neutral shadow-inner placeholder:text-tertiary/50 transition-all duration-200 focus:border-secondary focus:bg-white/90 focus:outline-none focus:ring-2 focus:ring-secondary/30"
           />
         </div>
 
@@ -147,7 +147,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Su contraseña"
               required
-              className="w-full rounded-lg border border-tertiary/30 px-4 py-3 text-neutral placeholder:text-tertiary/50 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+              className="w-full rounded-lg border border-white/60 bg-white/70 px-4 py-3 text-neutral shadow-inner placeholder:text-tertiary/50 transition-all duration-200 focus:border-secondary focus:bg-white/90 focus:outline-none focus:ring-2 focus:ring-secondary/30"
             />
           </div>
         )}
@@ -155,7 +155,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading || !email || (!resetMode && !password)}
-          className="w-full rounded-lg bg-primary px-4 py-3 font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+          className="w-full rounded-lg bg-gradient-to-r from-primary to-secondary px-4 py-3 font-medium text-white shadow-lg shadow-primary/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary/35 hover:-translate-y-0.5 active:translate-y-0 active:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-lg"
         >
           {loading
             ? resetMode ? "Enviando..." : "Ingresando..."

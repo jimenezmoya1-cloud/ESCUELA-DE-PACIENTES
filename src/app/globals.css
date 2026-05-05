@@ -127,3 +127,103 @@ h3 {
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
+
+/* Glassmorphism — pantalla de bienvenida CAIMED Medicina Preventiva */
+.glass-card {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 20px 60px -10px rgba(6, 85, 159, 0.18),
+    0 8px 24px -8px rgba(33, 43, 82, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.logo-blend {
+  mix-blend-mode: multiply;
+}
+
+@keyframes float-orb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -55px) scale(1.08); }
+  66% { transform: translate(-30px, 35px) scale(0.94); }
+}
+
+@keyframes float-orb-reverse {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-45px, 50px) scale(0.95); }
+  66% { transform: translate(35px, -40px) scale(1.1); }
+}
+
+@keyframes welcome-fade-up {
+  0% { opacity: 0; transform: translateY(28px) scale(0.97); filter: blur(8px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes logo-bloom {
+  0% { opacity: 0; transform: scale(0.88) translateY(-8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes subtle-glow {
+  0%, 100% { filter: drop-shadow(0 8px 24px rgba(6, 85, 159, 0.12)); }
+  50% { filter: drop-shadow(0 14px 32px rgba(30, 141, 206, 0.22)); }
+}
+
+@keyframes gradient-drift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-float-orb {
+  animation: float-orb 18s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.animate-float-orb-reverse {
+  animation: float-orb-reverse 22s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.animate-welcome-fade-up {
+  animation: welcome-fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
+}
+
+.animate-logo-bloom {
+  animation: logo-bloom 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
+
+.animate-subtle-glow {
+  animation: subtle-glow 4.5s ease-in-out infinite;
+}
+
+/* Combina entrada + glow continuo en el mismo elemento (necesario para que
+   mix-blend-mode multiply funcione, ya que evita un wrapper que cree stacking context) */
+.animate-logo-entrance {
+  animation:
+    logo-bloom 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both,
+    subtle-glow 4.5s ease-in-out 1s infinite;
+}
+
+.animate-gradient-drift {
+  background-size: 200% 200%;
+  animation: gradient-drift 16s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-orb,
+  .animate-float-orb-reverse,
+  .animate-welcome-fade-up,
+  .animate-logo-bloom,
+  .animate-logo-entrance,
+  .animate-subtle-glow,
+  .animate-gradient-drift {
+    animation: none;
+  }
+  .animate-welcome-fade-up,
+  .animate-logo-bloom,
+  .animate-logo-entrance {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}

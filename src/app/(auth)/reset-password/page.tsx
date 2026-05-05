@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
 
   if (success) {
     return (
-      <div className="rounded-2xl bg-white p-8 shadow-sm">
+      <div className="glass-card rounded-3xl p-8">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
             <svg className="h-8 w-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
