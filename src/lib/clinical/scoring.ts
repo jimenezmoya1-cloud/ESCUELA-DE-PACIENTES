@@ -265,3 +265,199 @@ export const recomputeAssessment = (
   const metaScore = calcularMetaScore(scoreGlobal)
   return { components: recomputed, scoreGlobal, nivel, metaScore }
 }
+
+export interface ChipResult {
+  label: string
+  displayValue: string
+  score: number
+}
+
+const computeIMC = (weightStr: string, heightStr: string): number | null => {
+  // El cuestionario captura altura en METROS (input "¿Cuánto mides? (m)").
+  // No dividimos por 100 — el valor ya viene en metros.
+  const w = parseFloat(weightStr)
+  const hM = parseFloat(heightStr)
+  if (!w || !hM) return null
+  return Math.round((w / (hM * hM)) * 10) / 10
+}
+
+const sumArr = (arr: number[]) => arr.reduce((a, b) => a + b, 0)
+
+/**
+ * Calcula el chip de score para un componente dado, derivando el valor crudo
+ * desde formData. Reusa calcularPuntajeExacto para garantizar consistencia
+ * con el reporte final.
+ *
+ * Devuelve null si los inputs aún no están completos (chip muestra estado neutral).
+ *
+ * NOTA sobre contexto: el chip recibe el contexto disponible en captura
+ * (takesMeds, iiefAplica) pero NO conoce isSCA/isDM2 (esos los marca el
+ * médico en ClinicalHistoryClient). El chip muestra el valor con isSCA=false
+ * isDM2=false, lo que puede diferir del puntaje final visible en el reporte
+ * para Colesterol y Glucosa cuando el contexto SCA/DM2 cambia las metas.
+ */
+export const computeChipScore = (
+  componentName: string,
+  formData: Record<string, unknown>,
+  contexto: ContextoClinico,
+): ChipResult | null => {
+  switch (componentName) {
+    case 'Red de apoyo': {
+      const mspss = formData.mspss as number[]
+      if (!mspss || mspss.some(v => v === 0)) return null
+      const suma = sumArr(mspss)
+      const promedio = Math.round((suma / 12) * 10) / 10
+      return {
+        label: 'Promedio',
+        displayValue: promedio.toFixed(1),
+        score: calcularPuntajeExacto('Red de apoyo', suma, contexto),
+      }
+    }
+    case 'Empoderamiento': {
+      const hes = formData.hes as number[]
+      if (!hes || hes.some(v => v === 0)) return null
+      const suma = sumArr(hes)
+      return {
+        label: 'Suma',
+        displayValue: String(suma),
+        score: calcularPuntajeExacto('Empoderamiento', suma, contexto),
+      }
+    }
+    case 'Adherencia a medicamentos': {
+      const arms = formData.arms as number[]
+      if (!arms || arms.some(v => v === 0)) return null
+      // Pregunta 12 (idx 11) está inversa — mismo cálculo que Questionnaire.tsx:295-300.
+      const suma = arms.reduce((a, b, idx) => idx === 11 ? a + (5 - b) : a + b, 0)
+      return {
+        label: 'Suma',
+        displayValue: String(suma),
+        score: calcularPuntajeExacto('Adherencia a medicamentos', suma, contexto),
+      }
+    }
+    case 'Acceso a medicamentos': {
+      const v = formData.medAccess as number
+      if (!v) return null
+      const labels: Record<number, string> = { 1: 'Sí', 2: 'Parcial', 3: 'No' }
+      return {
+        label: 'Respuesta',
+        displayValue: labels[v] ?? '—',
+        score: calcularPuntajeExacto('Acceso a medicamentos', v, contexto),
+      }
+    }
+    case 'Presión arterial': {
+      const vs = formData.vitalSigns as { pas?: string } | undefined
+      const pas = parseFloat(vs?.pas ?? '')
+      if (!pas) return null
+      return {
+        label: 'PAS',
+        displayValue: `${pas} mmHg`,
+        score: calcularPuntajeExacto('Presión arterial', pas, contexto),
+      }
+    }
+    case 'Peso': {
+      const imc = computeIMC(formData.weight as string, formData.height as string)
+      if (imc === null) return null
+      return {
+        label: 'IMC',
+        displayValue: imc.toFixed(1),
+        score: calcularPuntajeExacto('Peso', imc, contexto),
+      }
+    }
+    case 'Colesterol': {
+      const p = formData.paraclinics as { ldl?: string } | undefined
+      const ldl = parseFloat(p?.ldl ?? '')
+      if (!ldl) return null
+      return {
+        label: 'LDL',
+        displayValue: `${ldl} mg/dL`,
+        score: calcularPuntajeExacto('Colesterol', ldl, contexto),
+      }
+    }
+    case 'Glucosa': {
+      const p = formData.paraclinics as { hba1c?: string } | undefined
+      const hba1c = parseFloat(p?.hba1c ?? '')
+      if (!hba1c) return null
+      return {
+        label: 'HbA1c',
+        displayValue: `${hba1c.toFixed(1)} %`,
+        score: calcularPuntajeExacto('Glucosa', hba1c, contexto),
+      }
+    }
+    case 'Disfunción eréctil': {
+      const iief = formData.iief as number[]
+      if (!iief || iief.some(v => v === 0)) return null
+      const suma = sumArr(iief)
+      return {
+        label: 'Suma',
+        displayValue: String(suma),
+        score: calcularPuntajeExacto('Disfunción eréctil', suma, contexto),
+      }
+    }
+    case 'Nicotina': {
+      const smoked = formData.smoked as boolean | null
+      if (smoked === null) return null
+      const labels: Record<number, string> = {
+        1: 'No fumador', 2: 'Ex >5 años', 3: 'Ex 1-5 años',
+        4: 'Ex <1 año', 5: 'Fumador actual', 6: 'Vapeador',
+      }
+      let nicotina = 1
+      if (smoked) {
+        const s = formData.smokeStatus as number[]
+        if (!s || s.length === 0) return null
+        if (s.includes(6) || s.includes(5)) nicotina = 5
+        else if (s.includes(4)) nicotina = 4
+        else if (s.includes(3)) nicotina = 3
+        else if (s.includes(2)) nicotina = 2
+      }
+      return {
+        label: 'Categoría',
+        displayValue: labels[nicotina],
+        score: calcularPuntajeExacto('Nicotina', nicotina, contexto),
+      }
+    }
+    case 'Actividad física': {
+      const raw = formData.activity as string
+      if (!raw) return null
+      const v = parseFloat(raw)
+      if (isNaN(v)) return null
+      return {
+        label: 'Actividad',
+        displayValue: `${v} min/sem`,
+        score: calcularPuntajeExacto('Actividad física', v, contexto),
+      }
+    }
+    case 'Sueño': {
+      const raw = formData.sleep as string
+      if (!raw) return null
+      const v = parseFloat(raw)
+      if (isNaN(v)) return null
+      return {
+        label: 'Sueño',
+        displayValue: `${v.toFixed(1)} horas`,
+        score: calcularPuntajeExacto('Sueño', v, contexto),
+      }
+    }
+    case 'Salud mental': {
+      const phq = formData.phq9 as number[]
+      if (!phq) return null
+      const suma = sumArr(phq)
+      return {
+        label: 'Suma PHQ-9',
+        displayValue: String(suma),
+        score: calcularPuntajeExacto('Salud mental', suma, contexto),
+      }
+    }
+    case 'Alimentación': {
+      const medas = formData.medas as number[]
+      if (!medas || medas.some(v => v < 0)) return null
+      const suma = sumArr(medas)
+      return {
+        label: 'Suma',
+        displayValue: String(suma),
+        score: calcularPuntajeExacto('Alimentación', suma, contexto),
+      }
+    }
+    default:
+      return null
+  }
+}

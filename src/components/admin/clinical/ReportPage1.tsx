@@ -189,7 +189,7 @@ const ReportPage1 = forwardRef<HTMLDivElement, Props>(function ReportPage1(props
                     </div>
                     <div className="w-10 text-right">
                       <span className="font-black text-slate-900 text-lg">
-                        {isNaN(parseFloat(String(comp.valor))) ? comp.valor : parseFloat(String(comp.valor)).toFixed(1).replace(/\.0$/, "")}
+                        {comp.puntaje}
                       </span>
                     </div>
                     {modoEdicion && (

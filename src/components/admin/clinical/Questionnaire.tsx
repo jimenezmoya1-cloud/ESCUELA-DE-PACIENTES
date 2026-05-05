@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   HeartPulse, User, CreditCard, Calendar, Phone, Mail,
   Ruler, Scale, Activity, Pill, Package, Moon, Dumbbell,
-  Check, ChevronRight, ChevronLeft, Loader2, Link as LinkIcon, CheckCircle2
+  Check, ChevronRight, ChevronLeft, Loader2, Link as LinkIcon, CheckCircle2, X
 } from 'lucide-react';
 import TermsModal from './TermsModal';
 import { colombia } from '@/lib/clinical/data/colombia';
@@ -12,7 +12,11 @@ import { countries } from '@/lib/clinical/data/countries';
 import { REGIMEN_AFILIACION, EPS_LIST, PREPAGADAS_LIST, PLAN_COMPLEMENTARIO_LIST } from '@/lib/clinical/data/colombia-health';
 import AntecedentesStep from './AntecedentesStep';
 import type { Cie10Selection } from '@/lib/clinical/data/cie10';
+import ScoreChip from './ScoreChip';
+import { computeChipScore } from '@/lib/clinical/scoring';
+import type { ContextoClinico } from '@/lib/clinical/types';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useKeyboardSelection } from '@/hooks/useKeyboardSelection';
 
 const getCaimedMessage = (step: number) => {
   switch(step) {
@@ -187,6 +191,39 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
     phq9Difficulty: 0,
     medas: Array(8).fill(-1)
   });
+
+  // EP-5: chip context — derivamos isSCA/isDM2 de los antecedentes capturados
+  // (mismo cálculo que líneas 222-223). isPluripatologico/isPocaExpectativa los
+  // marca el médico en ClinicalHistoryClient, no en captura, así que default false.
+  const chipContexto: ContextoClinico = {
+    isSCA: formData.diseases.includes('Infarto cardiaco') || formData.diseases.includes('Trombosis cerebral'),
+    isDM2: formData.diseases.includes('Diabetes'),
+    isPluripatologico: false,
+    isPocaExpectativa: false,
+    edad: 0,
+    takesMeds: formData.takesMeds === true,
+    iiefAplica: formData.gender === 'Masculino' && formData.hasSexualActivity === true,
+  };
+  const chipFor = (name: string) => {
+    const result = computeChipScore(name, formData as unknown as Record<string, unknown>, chipContexto);
+    return result
+      ? { label: result.label, displayValue: result.displayValue, score: result.score }
+      : { label: 'Pendiente', displayValue: null, score: null };
+  };
+
+  // EP-6: keyboard navigation hook (intercepta números 1-9 en grupos marcados)
+  useKeyboardSelection();
+
+  // EP-6: auto-focus al primer botón del primer grupo Likert/binario al cambiar de step.
+  // Si el step actual no tiene grupos marcados (welcome, datos personales, etc.), no pasa nada.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const firstGroup = document.querySelector('[data-keyboard-group]') as HTMLElement | null;
+      const firstBtn = firstGroup?.querySelector('[data-key="1"]') as HTMLElement | null;
+      firstBtn?.focus();
+    }, 50);
+    return () => clearTimeout(t);
+  }, [step]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState('');
@@ -718,14 +755,17 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <User className="w-6 h-6 text-blue-600" /> Apoyo Social (MSPSS)
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <User className="w-6 h-6 text-blue-600" /> Apoyo Social (MSPSS)
+              </h2>
+              <ScoreChip {...chipFor('Red de apoyo')} />
+            </div>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
               {mspssQuestions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2" data-keyboard-group={`mspss-${idx}`}>
                     {[
                       { val: 1, label: 'Muy en desacuerdo' },
                       { val: 2, label: 'En desacuerdo' },
@@ -735,11 +775,13 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                       { val: 6, label: 'De acuerdo' },
                       { val: 7, label: 'Muy de acuerdo' }
                     ].map(opt => (
-                      <label 
-                        key={opt.val} 
+                      <label
+                        key={opt.val}
+                        data-key={opt.val}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-2 rounded-xl border cursor-pointer transition-all text-xs text-center ${
-                          formData.mspss[idx] === opt.val 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
+                          formData.mspss[idx] === opt.val
+                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -777,14 +819,17 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Empoderamiento en Salud (HES)
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Empoderamiento en Salud (HES)
+              </h2>
+              <ScoreChip {...chipFor('Empoderamiento')} />
+            </div>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
               {hesQuestions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2" data-keyboard-group={`hes-${idx}`}>
                     {[
                       { val: 1, label: 'Fuertemente en desacuerdo' },
                       { val: 2, label: 'En desacuerdo' },
@@ -792,11 +837,13 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                       { val: 4, label: 'De acuerdo' },
                       { val: 5, label: 'Fuertemente de acuerdo' }
                     ].map(opt => (
-                      <label 
-                        key={opt.val} 
+                      <label
+                        key={opt.val}
+                        data-key={opt.val}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all text-sm text-center ${
-                          formData.hes[idx] === opt.val 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
+                          formData.hes[idx] === opt.val
+                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -840,12 +887,13 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             
             <div className="space-y-4">
               <p className="text-slate-600 font-medium">¿Usted toma medicamentos actualmente?</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4" data-keyboard-group="takes-meds-gate">
                 <button
+                  data-key="1"
                   onClick={() => setFormData({...formData, takesMeds: true})}
                   className={`p-4 rounded-2xl border-2 text-center transition-all ${
                     formData.takesMeds === true
-                      ? 'border-blue-600 bg-blue-50 shadow-md' 
+                      ? 'border-blue-600 bg-blue-50 shadow-md'
                       : 'border-slate-200 bg-white hover:border-blue-300'
                   }`}
                 >
@@ -853,10 +901,11 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                   <span className="font-bold text-slate-700">Sí, tomo</span>
                 </button>
                 <button
+                  data-key="2"
                   onClick={() => setFormData({...formData, takesMeds: false, medAccess: 0, medAccessReason: 0, arms: Array(12).fill(1)})}
                   className={`p-4 rounded-2xl border-2 text-center transition-all ${
                     formData.takesMeds === false
-                      ? 'border-blue-600 bg-blue-50 shadow-md' 
+                      ? 'border-blue-600 bg-blue-50 shadow-md'
                       : 'border-slate-200 bg-white hover:border-blue-300'
                   }`}
                 >
@@ -870,13 +919,16 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 8:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Pill className="w-6 h-6 text-blue-600" /> Acceso a Medicamentos
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Pill className="w-6 h-6 text-blue-600" /> Acceso a Medicamentos
+              </h2>
+              <ScoreChip {...chipFor('Acceso a medicamentos')} />
+            </div>
             <div className="space-y-4">
               <p className="text-slate-600 font-medium">¿Usted tiene acceso a los medicamentos que le son formulados?</p>
               
-              <div className="space-y-3">
+              <div className="space-y-3" data-keyboard-group="med-access">
                 {[
                   { id: 1, label: 'Sí', icon: '✅' },
                   { id: 2, label: 'Parcialmente', icon: '⚠️' },
@@ -884,10 +936,11 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                 ].map(opt => (
                   <button
                     key={opt.id}
+                    data-key={opt.id}
                     onClick={() => setFormData({...formData, medAccess: opt.id, medAccessReason: opt.id === 1 ? 0 : formData.medAccessReason})}
                     className={`w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all ${
-                      formData.medAccess === opt.id 
-                        ? 'border-blue-600 bg-blue-50 shadow-md' 
+                      formData.medAccess === opt.id
+                        ? 'border-blue-600 bg-blue-50 shadow-md'
                         : 'border-slate-200 bg-white hover:border-blue-300'
                     }`}
                   >
@@ -900,7 +953,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               {(formData.medAccess === 2 || formData.medAccess === 3) && (
                 <div className="mt-8 animate-in fade-in slide-in-from-top-4">
                   <p className="text-slate-600 font-medium mb-4">¿Cuál es la razón principal?</p>
-                  <div className="space-y-2">
+                  <div className="space-y-2" data-keyboard-group="med-access-motivo">
                     {[
                       { id: 1, label: 'Problemas con entrega de la EPS/IPS' },
                       { id: 2, label: 'Medicamento desabastecido' },
@@ -912,10 +965,11 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                     ].map(opt => (
                       <button
                         key={opt.id}
+                        data-key={opt.id}
                         onClick={() => setFormData({...formData, medAccessReason: opt.id})}
                         className={`w-full p-3 rounded-xl border text-left transition-all ${
-                          formData.medAccessReason === opt.id 
-                            ? 'border-blue-600 bg-blue-600 text-white font-bold' 
+                          formData.medAccessReason === opt.id
+                            ? 'border-blue-600 bg-blue-600 text-white font-bold'
                             : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                         }`}
                       >
@@ -945,27 +999,32 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Package className="w-6 h-6 text-blue-600" /> Adherencia
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Package className="w-6 h-6 text-blue-600" /> Adherencia
+              </h2>
+              <ScoreChip {...chipFor('Adherencia a medicamentos')} />
+            </div>
             <p className="text-slate-600 font-medium">Cuando le formulan algún medicamento...</p>
             
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
               {armsQuestions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-keyboard-group={`arms-${idx}`}>
                     {[
                       { val: 1, label: 'Nunca' },
                       { val: 2, label: 'Algunas veces' },
                       { val: 3, label: 'Casi siempre' },
                       { val: 4, label: 'Siempre' }
                     ].map(opt => (
-                      <label 
-                        key={opt.val} 
+                      <label
+                        key={opt.val}
+                        data-key={opt.val}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all text-sm text-center ${
-                          formData.arms[idx] === opt.val 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
+                          formData.arms[idx] === opt.val
+                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -993,9 +1052,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 10:
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <HeartPulse className="w-6 h-6 text-blue-600" /> Signos Vitales
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <HeartPulse className="w-6 h-6 text-blue-600" /> Signos Vitales
+              </h2>
+              <ScoreChip {...chipFor('Presión arterial')} />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Presión Arterial Sistólica (PAS) *</label>
@@ -1048,10 +1110,13 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
 
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[60vh] overflow-y-auto pr-2">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Ruler className="w-6 h-6 text-blue-600" /> Antropometría
-            </h2>
-            
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Ruler className="w-6 h-6 text-blue-600" /> Antropometría
+              </h2>
+              <ScoreChip {...chipFor('Peso')} />
+            </div>
+
             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
               <label className="block text-lg font-bold text-slate-700 mb-4 flex justify-between items-center">
                 <span>¿Cuánto mides? (m)</span>
@@ -1119,10 +1184,16 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 12:
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[60vh] overflow-y-auto pr-2">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Paraclínicos
-            </h2>
-            
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Paraclínicos
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                <ScoreChip {...chipFor('Colesterol')} />
+                <ScoreChip {...chipFor('Glucosa')} />
+              </div>
+            </div>
+
             <div className="border-t border-slate-200 pt-4">
               <h3 className="text-lg font-bold text-slate-800 mb-4">Perfil Lipídico</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1231,13 +1302,19 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Salud Sexual
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Salud Sexual
+              </h2>
+              {formData.gender === 'Masculino' && formData.hasSexualActivity === true && (
+                <ScoreChip {...chipFor('Disfunción eréctil')} />
+              )}
+            </div>
             <p className="text-slate-600 font-medium">¿Tienes actividad sexual?</p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4" data-keyboard-group="sex-activity-gate">
               <button
                 type="button"
+                data-key="1"
                 onClick={() => setHasActivity(true)}
                 aria-pressed={formData.hasSexualActivity === true}
                 className={`p-6 rounded-2xl border-2 text-center transition-all ${
@@ -1251,6 +1328,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               </button>
               <button
                 type="button"
+                data-key="2"
                 onClick={() => setHasActivity(false)}
                 aria-pressed={formData.hasSexualActivity === false}
                 className={`p-6 rounded-2xl border-2 text-center transition-all ${
@@ -1269,10 +1347,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                 {iiefQuestions.map((q, idx) => (
                   <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                     <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q.question}</p>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2" data-keyboard-group={`iief-${idx}`}>
                       {q.options.map(opt => (
                         <label
                           key={opt.val}
+                          data-key={opt.val}
+                          tabIndex={0}
                           className={`flex items-center justify-center p-2 rounded-xl border cursor-pointer transition-all text-xs text-center ${
                             formData.iief[idx] === opt.val
                               ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
@@ -1305,13 +1385,14 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               <Activity className="w-6 h-6 text-blue-600" /> Tabaquismo
             </h2>
             <p className="text-slate-600 font-medium">¿Alguna vez se ha expuesto a nicotina? (fumar o vapear)</p>
-            
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-2 gap-4" data-keyboard-group="smoked-gate">
               <button
+                data-key="1"
                 onClick={() => setFormData({...formData, smoked: true})}
                 className={`p-6 rounded-2xl border-2 text-center transition-all ${
-                  formData.smoked === true 
-                    ? 'border-blue-600 bg-blue-50 shadow-md' 
+                  formData.smoked === true
+                    ? 'border-blue-600 bg-blue-50 shadow-md'
                     : 'border-slate-200 bg-white hover:border-blue-300'
                 }`}
               >
@@ -1319,10 +1400,11 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                 <span className="font-bold text-slate-700">Sí</span>
               </button>
               <button
+                data-key="2"
                 onClick={() => setFormData({...formData, smoked: false, smokeStatus: []})}
                 className={`p-6 rounded-2xl border-2 text-center transition-all ${
-                  formData.smoked === false 
-                    ? 'border-blue-600 bg-blue-50 shadow-md' 
+                  formData.smoked === false
+                    ? 'border-blue-600 bg-blue-50 shadow-md'
                     : 'border-slate-200 bg-white hover:border-blue-300'
                 }`}
               >
@@ -1335,22 +1417,26 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 15:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Tabaquismo
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Tabaquismo
+              </h2>
+              <ScoreChip {...chipFor('Nicotina')} />
+            </div>
             <p className="text-slate-600 font-medium mb-4">¿Cuál es tu situación actual?</p>
-            <div className="space-y-2">
+            <div className="space-y-2" data-keyboard-group="nicotina">
               {[
-                { id: 6, label: 'Fumador actual de cigarrillo' },
-                { id: 5, label: 'Fumador actual de cigarrillo electrónico/vapeador' },
-                { id: 4, label: 'Exfumador, suspendido hace < 1 año' },
-                { id: 3, label: 'Exfumador, suspendido hace 1-5 años' },
-                { id: 2, label: 'Exfumador, suspendido hace más de 5 años' }
+                { id: 6, label: 'Fumador actual de cigarrillo', key: 1 },
+                { id: 5, label: 'Fumador actual de cigarrillo electrónico/vapeador', key: 2 },
+                { id: 4, label: 'Exfumador, suspendido hace < 1 año', key: 3 },
+                { id: 3, label: 'Exfumador, suspendido hace 1-5 años', key: 4 },
+                { id: 2, label: 'Exfumador, suspendido hace más de 5 años', key: 5 }
               ].map(opt => {
                 const isSelected = formData.smokeStatus.includes(opt.id);
                 return (
                   <button
                     key={opt.id}
+                    data-key={opt.key}
                     onClick={() => {
                       let newStatus = [...formData.smokeStatus];
                       if (isSelected) {
@@ -1384,9 +1470,15 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 16: {
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[60vh] overflow-y-auto pr-2">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Dumbbell className="w-6 h-6 text-blue-600" /> Actividad Física y Sueño
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Dumbbell className="w-6 h-6 text-blue-600" /> Actividad Física y Sueño
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                <ScoreChip {...chipFor('Actividad física')} />
+                <ScoreChip {...chipFor('Sueño')} />
+              </div>
+            </div>
 
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
               <label className="block text-slate-700 font-bold mb-2" htmlFor="activity-minutes">
@@ -1451,26 +1543,31 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Salud Mental (PHQ-9)
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Salud Mental (PHQ-9)
+              </h2>
+              <ScoreChip {...chipFor('Salud mental')} />
+            </div>
             <p className="text-slate-600 font-medium">Durante las últimas 2 semanas, ¿qué tan a menudo le han afectado alguno de los siguientes problemas?</p>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
               {phq9Questions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2" data-keyboard-group={`phq9-${idx}`}>
                     {[
-                      { val: 0, label: 'Ningún día' },
-                      { val: 1, label: 'Varios días' },
-                      { val: 2, label: 'Más de la mitad de los días' },
-                      { val: 3, label: 'Casi todos los días' }
+                      { val: 0, label: 'Ningún día', dkey: 1 },
+                      { val: 1, label: 'Varios días', dkey: 2 },
+                      { val: 2, label: 'Más de la mitad de los días', dkey: 3 },
+                      { val: 3, label: 'Casi todos los días', dkey: 4 }
                     ].map(opt => (
-                      <label 
-                        key={opt.val} 
+                      <label
+                        key={opt.val}
+                        data-key={opt.dkey}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-2 rounded-xl border cursor-pointer transition-all text-xs text-center ${
-                          formData.phq9[idx] === opt.val 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
+                          formData.phq9[idx] === opt.val
+                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -1495,18 +1592,20 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               {formData.phq9.some(v => v > 0) && (
                 <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-sm mt-8">
                   <p className="font-bold text-slate-700 mb-4">Si marcó cualquiera de los problemas, ¿qué tanta dificultad le han dado estos problemas para hacer su trabajo, encargarse de las tareas del hogar, o llevarse bien con las personas?</p>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2" data-keyboard-group="phq9-dif">
                     {[
-                      { val: 0, label: 'No ha sido difícil' },
-                      { val: 1, label: 'Un poco difícil' },
-                      { val: 2, label: 'Muy difícil' },
-                      { val: 3, label: 'Extremadamente difícil' }
+                      { val: 0, label: 'No ha sido difícil', dkey: 1 },
+                      { val: 1, label: 'Un poco difícil', dkey: 2 },
+                      { val: 2, label: 'Muy difícil', dkey: 3 },
+                      { val: 3, label: 'Extremadamente difícil', dkey: 4 }
                     ].map(opt => (
-                      <label 
-                        key={opt.val} 
+                      <label
+                        key={opt.val}
+                        data-key={opt.dkey}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all text-sm text-center ${
-                          formData.phq9Difficulty === opt.val 
-                            ? 'border-blue-600 bg-blue-600 text-white font-bold' 
+                          formData.phq9Difficulty === opt.val
+                            ? 'border-blue-600 bg-blue-600 text-white font-bold'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -1596,18 +1695,23 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         ];
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-              <Activity className="w-6 h-6 text-blue-600" /> Evaluación de alimentación
-            </h2>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <Activity className="w-6 h-6 text-blue-600" /> Evaluación de alimentación
+              </h2>
+              <ScoreChip {...chipFor('Alimentación')} />
+            </div>
             <p className="text-slate-600 font-medium">Menor puntaje = mejor patrón alimentario.</p>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 pb-8">
               {foodQuestions.map((item, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {item.q}</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    {item.options.map(opt => (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2" data-keyboard-group={`medas-${idx}`}>
+                    {item.options.map((opt, optIdx) => (
                       <label
                         key={opt.val}
+                        data-key={optIdx + 1}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all text-sm font-bold text-center ${
                           formData.medas[idx] === opt.val
                             ? 'border-blue-600 bg-blue-50 text-blue-700'
@@ -1758,9 +1862,20 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       </div>
       
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 bg-blue-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-5 fade-in duration-300 z-50 max-w-md border border-blue-500/50">
-          <HeartPulse className="w-8 h-8 shrink-0 text-blue-200" />
-          <p className="font-medium text-sm leading-relaxed">{toastMsg}</p>
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-blue-600/95 backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-5 fade-in duration-300 z-50 max-w-lg border border-blue-400/30">
+          <HeartPulse className="w-8 h-8 shrink-0 text-blue-200" aria-hidden="true" />
+          <p className="font-medium text-sm leading-relaxed flex-1">{toastMsg}</p>
+          <button
+            type="button"
+            onClick={() => {
+              if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+              setToastMsg('');
+            }}
+            className="shrink-0 p-1 rounded-md hover:bg-white/15 transition-colors"
+            aria-label="Cerrar mensaje"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
         </div>
       )}
     </div>
