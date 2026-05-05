@@ -16,6 +16,7 @@ import ScoreChip from './ScoreChip';
 import { computeChipScore } from '@/lib/clinical/scoring';
 import type { ContextoClinico } from '@/lib/clinical/types';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useKeyboardSelection } from '@/hooks/useKeyboardSelection';
 
 const getCaimedMessage = (step: number) => {
   switch(step) {
@@ -208,6 +209,20 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       ? { label: result.label, displayValue: result.displayValue, score: result.score }
       : { label: 'Pendiente', displayValue: null, score: null };
   };
+
+  // EP-6: keyboard navigation hook (intercepta números 1-9 en grupos marcados)
+  useKeyboardSelection();
+
+  // EP-6: auto-focus al primer botón del primer grupo Likert/binario al cambiar de step.
+  // Si el step actual no tiene grupos marcados (welcome, datos personales, etc.), no pasa nada.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const firstGroup = document.querySelector('[data-keyboard-group]') as HTMLElement | null;
+      const firstBtn = firstGroup?.querySelector('[data-key="1"]') as HTMLElement | null;
+      firstBtn?.focus();
+    }, 50);
+    return () => clearTimeout(t);
+  }, [step]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState('');
@@ -749,7 +764,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               {mspssQuestions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2" data-keyboard-group={`mspss-${idx}`}>
                     {[
                       { val: 1, label: 'Muy en desacuerdo' },
                       { val: 2, label: 'En desacuerdo' },
@@ -759,11 +774,13 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                       { val: 6, label: 'De acuerdo' },
                       { val: 7, label: 'Muy de acuerdo' }
                     ].map(opt => (
-                      <label 
-                        key={opt.val} 
+                      <label
+                        key={opt.val}
+                        data-key={opt.val}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-2 rounded-xl border cursor-pointer transition-all text-xs text-center ${
-                          formData.mspss[idx] === opt.val 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
+                          formData.mspss[idx] === opt.val
+                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -811,7 +828,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               {hesQuestions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2" data-keyboard-group={`hes-${idx}`}>
                     {[
                       { val: 1, label: 'Fuertemente en desacuerdo' },
                       { val: 2, label: 'En desacuerdo' },
@@ -819,11 +836,13 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                       { val: 4, label: 'De acuerdo' },
                       { val: 5, label: 'Fuertemente de acuerdo' }
                     ].map(opt => (
-                      <label 
-                        key={opt.val} 
+                      <label
+                        key={opt.val}
+                        data-key={opt.val}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all text-sm text-center ${
-                          formData.hes[idx] === opt.val 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
+                          formData.hes[idx] === opt.val
+                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -867,12 +886,13 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             
             <div className="space-y-4">
               <p className="text-slate-600 font-medium">¿Usted toma medicamentos actualmente?</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4" data-keyboard-group="takes-meds-gate">
                 <button
+                  data-key="1"
                   onClick={() => setFormData({...formData, takesMeds: true})}
                   className={`p-4 rounded-2xl border-2 text-center transition-all ${
                     formData.takesMeds === true
-                      ? 'border-blue-600 bg-blue-50 shadow-md' 
+                      ? 'border-blue-600 bg-blue-50 shadow-md'
                       : 'border-slate-200 bg-white hover:border-blue-300'
                   }`}
                 >
@@ -880,10 +900,11 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                   <span className="font-bold text-slate-700">Sí, tomo</span>
                 </button>
                 <button
+                  data-key="2"
                   onClick={() => setFormData({...formData, takesMeds: false, medAccess: 0, medAccessReason: 0, arms: Array(12).fill(1)})}
                   className={`p-4 rounded-2xl border-2 text-center transition-all ${
                     formData.takesMeds === false
-                      ? 'border-blue-600 bg-blue-50 shadow-md' 
+                      ? 'border-blue-600 bg-blue-50 shadow-md'
                       : 'border-slate-200 bg-white hover:border-blue-300'
                   }`}
                 >
@@ -906,7 +927,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
             <div className="space-y-4">
               <p className="text-slate-600 font-medium">¿Usted tiene acceso a los medicamentos que le son formulados?</p>
               
-              <div className="space-y-3">
+              <div className="space-y-3" data-keyboard-group="med-access">
                 {[
                   { id: 1, label: 'Sí', icon: '✅' },
                   { id: 2, label: 'Parcialmente', icon: '⚠️' },
@@ -914,10 +935,11 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                 ].map(opt => (
                   <button
                     key={opt.id}
+                    data-key={opt.id}
                     onClick={() => setFormData({...formData, medAccess: opt.id, medAccessReason: opt.id === 1 ? 0 : formData.medAccessReason})}
                     className={`w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all ${
-                      formData.medAccess === opt.id 
-                        ? 'border-blue-600 bg-blue-50 shadow-md' 
+                      formData.medAccess === opt.id
+                        ? 'border-blue-600 bg-blue-50 shadow-md'
                         : 'border-slate-200 bg-white hover:border-blue-300'
                     }`}
                   >
@@ -930,7 +952,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               {(formData.medAccess === 2 || formData.medAccess === 3) && (
                 <div className="mt-8 animate-in fade-in slide-in-from-top-4">
                   <p className="text-slate-600 font-medium mb-4">¿Cuál es la razón principal?</p>
-                  <div className="space-y-2">
+                  <div className="space-y-2" data-keyboard-group="med-access-motivo">
                     {[
                       { id: 1, label: 'Problemas con entrega de la EPS/IPS' },
                       { id: 2, label: 'Medicamento desabastecido' },
@@ -942,10 +964,11 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                     ].map(opt => (
                       <button
                         key={opt.id}
+                        data-key={opt.id}
                         onClick={() => setFormData({...formData, medAccessReason: opt.id})}
                         className={`w-full p-3 rounded-xl border text-left transition-all ${
-                          formData.medAccessReason === opt.id 
-                            ? 'border-blue-600 bg-blue-600 text-white font-bold' 
+                          formData.medAccessReason === opt.id
+                            ? 'border-blue-600 bg-blue-600 text-white font-bold'
                             : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                         }`}
                       >
@@ -987,18 +1010,20 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               {armsQuestions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-keyboard-group={`arms-${idx}`}>
                     {[
                       { val: 1, label: 'Nunca' },
                       { val: 2, label: 'Algunas veces' },
                       { val: 3, label: 'Casi siempre' },
                       { val: 4, label: 'Siempre' }
                     ].map(opt => (
-                      <label 
-                        key={opt.val} 
+                      <label
+                        key={opt.val}
+                        data-key={opt.val}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all text-sm text-center ${
-                          formData.arms[idx] === opt.val 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
+                          formData.arms[idx] === opt.val
+                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -1285,9 +1310,10 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               )}
             </div>
             <p className="text-slate-600 font-medium">¿Tienes actividad sexual?</p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4" data-keyboard-group="sex-activity-gate">
               <button
                 type="button"
+                data-key="1"
                 onClick={() => setHasActivity(true)}
                 aria-pressed={formData.hasSexualActivity === true}
                 className={`p-6 rounded-2xl border-2 text-center transition-all ${
@@ -1301,6 +1327,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               </button>
               <button
                 type="button"
+                data-key="2"
                 onClick={() => setHasActivity(false)}
                 aria-pressed={formData.hasSexualActivity === false}
                 className={`p-6 rounded-2xl border-2 text-center transition-all ${
@@ -1319,10 +1346,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                 {iiefQuestions.map((q, idx) => (
                   <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                     <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q.question}</p>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2" data-keyboard-group={`iief-${idx}`}>
                       {q.options.map(opt => (
                         <label
                           key={opt.val}
+                          data-key={opt.val}
+                          tabIndex={0}
                           className={`flex items-center justify-center p-2 rounded-xl border cursor-pointer transition-all text-xs text-center ${
                             formData.iief[idx] === opt.val
                               ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
@@ -1355,13 +1384,14 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               <Activity className="w-6 h-6 text-blue-600" /> Tabaquismo
             </h2>
             <p className="text-slate-600 font-medium">¿Alguna vez se ha expuesto a nicotina? (fumar o vapear)</p>
-            
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-2 gap-4" data-keyboard-group="smoked-gate">
               <button
+                data-key="1"
                 onClick={() => setFormData({...formData, smoked: true})}
                 className={`p-6 rounded-2xl border-2 text-center transition-all ${
-                  formData.smoked === true 
-                    ? 'border-blue-600 bg-blue-50 shadow-md' 
+                  formData.smoked === true
+                    ? 'border-blue-600 bg-blue-50 shadow-md'
                     : 'border-slate-200 bg-white hover:border-blue-300'
                 }`}
               >
@@ -1369,10 +1399,11 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                 <span className="font-bold text-slate-700">Sí</span>
               </button>
               <button
+                data-key="2"
                 onClick={() => setFormData({...formData, smoked: false, smokeStatus: []})}
                 className={`p-6 rounded-2xl border-2 text-center transition-all ${
-                  formData.smoked === false 
-                    ? 'border-blue-600 bg-blue-50 shadow-md' 
+                  formData.smoked === false
+                    ? 'border-blue-600 bg-blue-50 shadow-md'
                     : 'border-slate-200 bg-white hover:border-blue-300'
                 }`}
               >
@@ -1392,18 +1423,19 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               <ScoreChip {...chipFor('Nicotina')} />
             </div>
             <p className="text-slate-600 font-medium mb-4">¿Cuál es tu situación actual?</p>
-            <div className="space-y-2">
+            <div className="space-y-2" data-keyboard-group="nicotina">
               {[
-                { id: 6, label: 'Fumador actual de cigarrillo' },
-                { id: 5, label: 'Fumador actual de cigarrillo electrónico/vapeador' },
-                { id: 4, label: 'Exfumador, suspendido hace < 1 año' },
-                { id: 3, label: 'Exfumador, suspendido hace 1-5 años' },
-                { id: 2, label: 'Exfumador, suspendido hace más de 5 años' }
+                { id: 6, label: 'Fumador actual de cigarrillo', key: 1 },
+                { id: 5, label: 'Fumador actual de cigarrillo electrónico/vapeador', key: 2 },
+                { id: 4, label: 'Exfumador, suspendido hace < 1 año', key: 3 },
+                { id: 3, label: 'Exfumador, suspendido hace 1-5 años', key: 4 },
+                { id: 2, label: 'Exfumador, suspendido hace más de 5 años', key: 5 }
               ].map(opt => {
                 const isSelected = formData.smokeStatus.includes(opt.id);
                 return (
                   <button
                     key={opt.id}
+                    data-key={opt.key}
                     onClick={() => {
                       let newStatus = [...formData.smokeStatus];
                       if (isSelected) {
@@ -1521,18 +1553,20 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               {phq9Questions.map((q, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {q}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2" data-keyboard-group={`phq9-${idx}`}>
                     {[
-                      { val: 0, label: 'Ningún día' },
-                      { val: 1, label: 'Varios días' },
-                      { val: 2, label: 'Más de la mitad de los días' },
-                      { val: 3, label: 'Casi todos los días' }
+                      { val: 0, label: 'Ningún día', dkey: 1 },
+                      { val: 1, label: 'Varios días', dkey: 2 },
+                      { val: 2, label: 'Más de la mitad de los días', dkey: 3 },
+                      { val: 3, label: 'Casi todos los días', dkey: 4 }
                     ].map(opt => (
-                      <label 
-                        key={opt.val} 
+                      <label
+                        key={opt.val}
+                        data-key={opt.dkey}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-2 rounded-xl border cursor-pointer transition-all text-xs text-center ${
-                          formData.phq9[idx] === opt.val 
-                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
+                          formData.phq9[idx] === opt.val
+                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -1557,18 +1591,20 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               {formData.phq9.some(v => v > 0) && (
                 <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-sm mt-8">
                   <p className="font-bold text-slate-700 mb-4">Si marcó cualquiera de los problemas, ¿qué tanta dificultad le han dado estos problemas para hacer su trabajo, encargarse de las tareas del hogar, o llevarse bien con las personas?</p>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2" data-keyboard-group="phq9-dif">
                     {[
-                      { val: 0, label: 'No ha sido difícil' },
-                      { val: 1, label: 'Un poco difícil' },
-                      { val: 2, label: 'Muy difícil' },
-                      { val: 3, label: 'Extremadamente difícil' }
+                      { val: 0, label: 'No ha sido difícil', dkey: 1 },
+                      { val: 1, label: 'Un poco difícil', dkey: 2 },
+                      { val: 2, label: 'Muy difícil', dkey: 3 },
+                      { val: 3, label: 'Extremadamente difícil', dkey: 4 }
                     ].map(opt => (
-                      <label 
-                        key={opt.val} 
+                      <label
+                        key={opt.val}
+                        data-key={opt.dkey}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all text-sm text-center ${
-                          formData.phq9Difficulty === opt.val 
-                            ? 'border-blue-600 bg-blue-600 text-white font-bold' 
+                          formData.phq9Difficulty === opt.val
+                            ? 'border-blue-600 bg-blue-600 text-white font-bold'
                             : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -1669,10 +1705,12 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               {foodQuestions.map((item, idx) => (
                 <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <p className="font-bold text-slate-700 mb-4">{idx + 1}. {item.q}</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    {item.options.map(opt => (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2" data-keyboard-group={`medas-${idx}`}>
+                    {item.options.map((opt, optIdx) => (
                       <label
                         key={opt.val}
+                        data-key={optIdx + 1}
+                        tabIndex={0}
                         className={`flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all text-sm font-bold text-center ${
                           formData.medas[idx] === opt.val
                             ? 'border-blue-600 bg-blue-50 text-blue-700'
