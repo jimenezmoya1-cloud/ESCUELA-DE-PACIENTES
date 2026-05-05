@@ -104,6 +104,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/clinico/dashboard", label: "Dashboard clínico", icon: stethoscopeIcon },
       { href: "/admin/pacientes", label: "Pacientes", icon: patientsIcon },
       { href: "/admin/clinico/disponibilidad", label: "Mi disponibilidad", icon: calendarIcon },
+      { href: "/admin/clinico/agenda", label: "Mi agenda", icon: calendarIcon },
     ],
   },
 ]
