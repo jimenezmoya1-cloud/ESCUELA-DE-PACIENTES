@@ -20,7 +20,7 @@ export default function PatientAutocomplete({
   const [results, setResults] = useState<PatientLite[]>([])
   const [open, setOpen] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const supabase = createClient()
+  const supabaseRef = useRef(createClient())
 
   useEffect(() => {
     if (!query || query.length < 2) {
@@ -29,7 +29,7 @@ export default function PatientAutocomplete({
     }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
-      const { data } = await supabase
+      const { data } = await supabaseRef.current
         .from("users")
         .select("id, name, email")
         .eq("role", "patient")
@@ -37,7 +37,7 @@ export default function PatientAutocomplete({
         .limit(10)
       setResults((data ?? []) as PatientLite[])
     }, 250)
-  }, [query, supabase])
+  }, [query])
 
   if (value) {
     return (

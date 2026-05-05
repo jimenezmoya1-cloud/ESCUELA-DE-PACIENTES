@@ -135,11 +135,16 @@ export async function adjustCredit(input: {
       if (!row) return { ok: false, error: "El paciente no tiene suficientes créditos para restar" }
 
       const take = Math.min(row.remaining, toRemove)
-      const { error: updErr } = await admin
+      const { data: updated, error: updErr } = await admin
         .from("evaluation_credits")
         .update({ remaining: row.remaining - take })
         .eq("id", row.id)
+        .eq("remaining", row.remaining)             // optimistic concurrency
+        .select("id")
       if (updErr) return { ok: false, error: updErr.message }
+      if (!updated || updated.length === 0) {
+        return { ok: false, error: "Conflicto de concurrencia: el crédito fue modificado por otra operación, intenta de nuevo" }
+      }
       toRemove -= take
     }
   }
@@ -205,5 +210,9 @@ export async function listPayments(input: {
       )
     : payments
 
-  return { ok: true, payments: filtered, total: count ?? 0 }
+  return {
+    ok: true,
+    payments: filtered,
+    total: input.search ? filtered.length : (count ?? 0),
+  }
 }
