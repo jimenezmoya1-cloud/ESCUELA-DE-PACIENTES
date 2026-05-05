@@ -5,7 +5,7 @@ import { addMonths, startOfMonth, endOfMonth, eachDayOfInterval, format as fnsFo
 import { es } from "date-fns/locale"
 import { toZonedTime } from "date-fns-tz"
 import { BOGOTA_TZ } from "@/lib/scheduling/constants"
-import { utcIsoToBogotaDateKey } from "@/lib/scheduling/format"
+import { utcIsoToBogotaDateKey, dateToBogotaDateKey } from "@/lib/scheduling/format"
 import type { AppointmentWithJoin } from "@/lib/scheduling/admin"
 
 interface Props {
@@ -53,7 +53,7 @@ export default function AgendaMonthView({ appointments, onSelect }: Props) {
             <div key={`pad-${i}`} className="border-r border-b border-tertiary/10" />
           ))}
           {days.map((d) => {
-            const list = aptsByDay.get(utcIsoToBogotaDateKey(d.toISOString())) ?? []
+            const list = aptsByDay.get(dateToBogotaDateKey(d)) ?? []
             const today = isSameDay(d, new Date())
             return (
               <div key={d.toISOString()} className="border-r border-b border-tertiary/10 p-1 overflow-hidden">

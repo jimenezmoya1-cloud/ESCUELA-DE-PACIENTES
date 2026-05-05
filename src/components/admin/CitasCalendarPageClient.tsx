@@ -11,6 +11,7 @@ export default function CitasCalendarPageClient({ appointments }: { appointments
   const router = useRouter()
 
   function handleChanged() {
+    setSelected(null)        // close drawer too
     router.refresh()
   }
 

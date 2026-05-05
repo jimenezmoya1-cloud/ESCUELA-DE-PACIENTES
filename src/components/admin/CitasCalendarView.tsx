@@ -5,7 +5,7 @@ import { addDays, addWeeks, addMonths, startOfWeek, endOfWeek, startOfMonth, end
 import { es } from "date-fns/locale"
 import { toZonedTime } from "date-fns-tz"
 import { BOGOTA_TZ } from "@/lib/scheduling/constants"
-import { formatTimeBogota, utcIsoToBogotaDateKey } from "@/lib/scheduling/format"
+import { formatTimeBogota, utcIsoToBogotaDateKey, dateToBogotaDateKey } from "@/lib/scheduling/format"
 import type { AppointmentWithJoin } from "@/lib/scheduling/admin"
 
 const STATUS_BG: Record<AppointmentWithJoin["status"], string> = {
@@ -117,7 +117,7 @@ function WeekGrid({ cursor, appointments, onSelect }: { cursor: Date; appointmen
       </div>
       <div className="grid grid-cols-7 min-h-[400px]">
         {days.map((d) => {
-          const key = utcIsoToBogotaDateKey(d.toISOString())
+          const key = dateToBogotaDateKey(d)
           const list = aptsByDay.get(key) ?? []
           return (
             <div key={d.toISOString()} className="border-r border-tertiary/10 last:border-r-0 p-2 space-y-1">
@@ -177,7 +177,7 @@ function MonthGrid({ cursor, appointments, onSelect }: { cursor: Date; appointme
           <div key={`pad-${i}`} className="border-r border-b border-tertiary/10" />
         ))}
         {days.map((d) => {
-          const key = utcIsoToBogotaDateKey(d.toISOString())
+          const key = dateToBogotaDateKey(d)
           const list = aptsByDay.get(key) ?? []
           const today = isSameDay(d, new Date())
           return (

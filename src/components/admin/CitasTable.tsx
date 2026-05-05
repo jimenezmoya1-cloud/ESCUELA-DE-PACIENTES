@@ -118,7 +118,10 @@ export default function CitasTable({ rows }: { rows: AppointmentWithJoin[] }) {
       <CitaDrawerAdmin
         appointment={selected}
         onClose={() => setSelected(null)}
-        onChanged={() => router.refresh()}
+        onChanged={() => {
+          setSelected(null)        // close drawer too
+          router.refresh()
+        }}
       />
     </div>
   )

@@ -1,4 +1,4 @@
-import { parseISO, addMinutes } from "date-fns"
+import { parseISO, addMinutes, format as fnsFormatDate } from "date-fns"
 import { toZonedTime, fromZonedTime, format as tzFormat } from "date-fns-tz"
 import { es } from "date-fns/locale"
 import { BOGOTA_TZ, SLOT_DURATION_MIN } from "./constants"
@@ -59,4 +59,16 @@ export function endOfDayBogotaIso(iso: string): string {
 /** Diferencia en milisegundos entre `target` y `now`. Negativo si target ya pasó. */
 export function msUntil(targetIso: string): number {
   return parseISO(targetIso).getTime() - Date.now()
+}
+
+/**
+ * Devuelve la "Bogota date key" (formato yyyy-MM-dd) de un Date object,
+ * tratando ese Date como una fecha de calendario abstracta (no como un instante).
+ *
+ * Esto es lo que necesitas cuando estás iterando sobre días con
+ * `eachDayOfInterval` y quieres usar la misma key que `utcIsoToBogotaDateKey`
+ * usaría para citas en ese día — sin que el timezone del browser corra el día.
+ */
+export function dateToBogotaDateKey(d: Date): string {
+  return fnsFormatDate(d, "yyyy-MM-dd")
 }

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { addDays, addWeeks, startOfWeek, endOfWeek, eachDayOfInterval, format as fnsFormat, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
-import { formatTimeBogota, utcIsoToBogotaDateKey } from "@/lib/scheduling/format"
+import { formatTimeBogota, utcIsoToBogotaDateKey, dateToBogotaDateKey } from "@/lib/scheduling/format"
 import type { AppointmentWithJoin } from "@/lib/scheduling/admin"
 
 const STATUS_BG: Record<AppointmentWithJoin["status"], string> = {
@@ -78,7 +78,7 @@ export default function AgendaWeekView({ appointments, onSelect }: Props) {
         </div>
         <div className="grid grid-cols-7 min-h-[400px]">
           {days.map((d) => {
-            const list = aptsByDay.get(utcIsoToBogotaDateKey(d.toISOString())) ?? []
+            const list = aptsByDay.get(dateToBogotaDateKey(d)) ?? []
             return (
               <div key={d.toISOString()} className="border-r border-tertiary/10 last:border-r-0 p-2 space-y-1">
                 {list.length === 0 ? (
