@@ -27,7 +27,8 @@
 **Crear:**
 - `supabase/migration-v9-scheduling.sql` — migración con todas las tablas, indices, RLS, función round-robin.
 - `src/lib/payments/types.ts` — tipos compartidos `Plan`, `PaymentSource`, `PaymentStatus`, `Payment`, `EvaluationCredit`.
-- `src/lib/payments/config.ts` — helper para leer/escribir keys de `app_config` relacionadas a pagos y agendamiento.
+- `src/lib/payments/config.ts` — helper para leer/escribir keys de `app_config` relacionadas a pagos y agendamiento (server-only).
+- `src/lib/payments/format.ts` — utilidades puras de formato/conversión COP (`copToCents`, `centsToCop`, `formatCop`). Sin importaciones de servidor, importable desde client components.
 - `src/lib/payments/credits.ts` — `getRemainingCreditsForPatient()`, `consumeCredit()`, `returnCredit()`.
 - `src/app/(admin)/admin/configuracion/page.tsx` — server component, lee config, renderiza form.
 - `src/app/(admin)/admin/configuracion/actions.ts` — server actions `updateAppConfig`.
@@ -549,8 +550,32 @@ git commit -m "feat(scheduling): add payment domain types"
 
 **Files:**
 - Create: `src/lib/payments/config.ts`
+- Create: `src/lib/payments/format.ts`
 
-- [ ] **Step 1: Crear helper que lee/escribe app_config**
+> **Nota (post-ejecución):** Las utilidades puras `copToCents`, `centsToCop` y `formatCop` fueron extraídas a `src/lib/payments/format.ts` para evitar que client components arrastren `next/headers` (vía el cliente Supabase server) al importar solo las utilidades. `config.ts` queda server-only; `format.ts` es importable desde cliente y servidor.
+
+- [ ] **Step 1a: Crear `src/lib/payments/format.ts`** (pure utilities, sin imports de servidor)
+
+```typescript
+export function copToCents(cop: number): number {
+  return Math.round(cop * 100)
+}
+
+export function centsToCop(cents: number): number {
+  return cents / 100
+}
+
+export function formatCop(cents: number): string {
+  const cop = centsToCop(cents)
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(cop)
+}
+```
+
+- [ ] **Step 1b: Crear `src/lib/payments/config.ts`** (server-only — solo fetchers y escritura de config)
 
 ```typescript
 import { createClient } from "@/lib/supabase/server"
@@ -604,30 +629,13 @@ export async function setConfigValue(key: string, value: string): Promise<void> 
     .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" })
   if (error) throw new Error(`No se pudo actualizar ${key}: ${error.message}`)
 }
-
-export function copToCents(cop: number): number {
-  return Math.round(cop * 100)
-}
-
-export function centsToCop(cents: number): number {
-  return cents / 100
-}
-
-export function formatCop(cents: number): string {
-  const cop = centsToCop(cents)
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(cop)
-}
 ```
 
 - [ ] **Step 2: Commitear**
 
 ```bash
-git add src/lib/payments/config.ts
-git commit -m "feat(scheduling): add scheduling config helper"
+git add src/lib/payments/config.ts src/lib/payments/format.ts
+git commit -m "fix(scheduling): split pure formatters out of payments/config"
 ```
 
 ---
@@ -901,7 +909,8 @@ export default async function ConfiguracionPage() {
 
 import { revalidatePath } from "next/cache"
 import { getCurrentProfile, isAdmin } from "@/lib/auth/profile"
-import { setConfigValue, copToCents } from "@/lib/payments/config"
+import { setConfigValue } from "@/lib/payments/config"
+import { copToCents } from "@/lib/payments/format"
 
 type Result = { ok: true } | { ok: false; error: string }
 
@@ -966,7 +975,7 @@ git commit -m "feat(scheduling): add /admin/configuracion server-side"
 
 import { useState, useTransition } from "react"
 import type { SchedulingConfig } from "@/lib/payments/config"
-import { centsToCop } from "@/lib/payments/config"
+import { centsToCop } from "@/lib/payments/format"
 import { updateSchedulingConfig } from "@/app/(admin)/admin/configuracion/actions"
 
 export default function ConfiguracionForm({ initial }: { initial: SchedulingConfig }) {
@@ -1290,7 +1299,7 @@ git commit -m "feat(scheduling): add placeholder pages for calendario and tabla 
 import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getCurrentProfile, isAdmin } from "@/lib/auth/profile"
-import { copToCents } from "@/lib/payments/config"
+import { copToCents } from "@/lib/payments/format"
 import { createCreditFromPayment } from "@/lib/payments/credits"
 import type { Plan, Payment } from "@/lib/payments/types"
 
@@ -1963,7 +1972,7 @@ git commit -m "feat(scheduling): add AjustarCreditosModal"
 
 import { useState, useEffect, useTransition } from "react"
 import { listPayments } from "@/app/(admin)/admin/citas/pagos/actions"
-import { formatCop } from "@/lib/payments/config"
+import { formatCop } from "@/lib/payments/format"
 import { PLAN_LABEL, STATUS_LABEL, SOURCE_LABEL } from "@/lib/payments/types"
 import type { Payment } from "@/lib/payments/types"
 import RegistrarPagoManualModal from "./RegistrarPagoManualModal"
@@ -2121,7 +2130,8 @@ git commit -m "feat(scheduling): add PagosTable with filters and modals"
 - [ ] **Step 1: Crear server component que carga config y pinta tabla**
 
 ```tsx
-import { getSchedulingConfig, centsToCop } from "@/lib/payments/config"
+import { getSchedulingConfig } from "@/lib/payments/config"
+import { centsToCop } from "@/lib/payments/format"
 import PagosTable from "@/components/admin/PagosTable"
 
 export const dynamic = "force-dynamic"
