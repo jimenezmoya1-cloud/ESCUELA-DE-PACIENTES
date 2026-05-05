@@ -1,4 +1,4 @@
-import { Html, Head, Body, Container, Heading, Text, Section, Hr, Img, Preview } from "@react-email/components"
+import { Html, Head, Body, Container, Heading, Text, Section, Hr, Preview } from "@react-email/components"
 import type { ReactNode } from "react"
 
 interface Props {
@@ -7,14 +7,12 @@ interface Props {
 }
 
 const BRAND_NAVY = "#1a2a52"
-const BRAND_NAVY_SOFT = "#212B52"
+const BRAND_NAVY_DEEP = "#0f1d3d"
 const ACCENT_PURPLE = "#a855f7"
 const ACCENT_TEAL = "#06b6d4"
+const TEXT_DARK = "#212B52"
 const TEXT_MUTED = "#6b7280"
 const BG_PAGE = "#f5f7fb"
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
-const logoUrl = `${siteUrl}/logo-medicina-preventiva-transparente.png`
 
 const containerStyle = {
   margin: "32px auto",
@@ -26,10 +24,47 @@ const containerStyle = {
   boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)",
 }
 
+// Header con typographic wordmark — sin imagen
 const headerStyle = {
-  background: BRAND_NAVY,
-  padding: "32px 24px 24px",
+  background: `linear-gradient(135deg, ${BRAND_NAVY_DEEP} 0%, ${BRAND_NAVY} 100%)`,
+  padding: "44px 24px 36px",
   textAlign: "center" as const,
+}
+
+const wordmarkStyle = {
+  color: "#ffffff",
+  fontSize: "34px",
+  fontWeight: 700,
+  margin: 0,
+  letterSpacing: "-0.5px",
+  lineHeight: 1,
+}
+
+const wordmarkRegStyle = {
+  fontSize: "12px",
+  fontWeight: 400,
+  verticalAlign: "super" as const,
+  marginLeft: "2px",
+  color: "#a8b3d4",
+}
+
+// Pequeño acento decorativo entre wordmark y subtítulo (rectángulo con gradiente)
+const ornamentStyle = {
+  display: "inline-block" as const,
+  width: "44px",
+  height: "3px",
+  background: `linear-gradient(90deg, ${ACCENT_PURPLE} 0%, ${ACCENT_TEAL} 100%)`,
+  borderRadius: "2px",
+  margin: "16px auto 14px",
+}
+
+const taglineStyle = {
+  color: "#cbd2e8",
+  fontSize: "12px",
+  fontWeight: 600,
+  margin: 0,
+  letterSpacing: "3px",
+  textTransform: "uppercase" as const,
 }
 
 const accentBarStyle = {
@@ -40,32 +75,29 @@ const accentBarStyle = {
 }
 
 const contentStyle = {
-  padding: "32px 32px 16px",
+  padding: "36px 36px 20px",
 }
 
 const footerStyle = {
-  padding: "16px 32px 32px",
+  padding: "20px 36px 36px",
   textAlign: "center" as const,
-  fontSize: "12px",
-  color: TEXT_MUTED,
-  lineHeight: "1.5",
+  background: "#fafbfd",
+  borderTop: "1px solid #eef0f5",
 }
 
-const brandNameStyle = {
-  color: "#ffffff",
-  fontSize: "22px",
-  fontWeight: 700,
-  margin: 0,
-  letterSpacing: "0.5px",
-}
-
-const brandTaglineStyle = {
-  color: "#a8b3d4",
+const footerBrandStyle = {
+  margin: "0 0 6px",
+  color: TEXT_DARK,
   fontSize: "13px",
-  fontWeight: 500,
-  margin: "4px 0 0",
-  letterSpacing: "1px",
-  textTransform: "uppercase" as const,
+  fontWeight: 600,
+  letterSpacing: "0.3px",
+}
+
+const footerTextStyle = {
+  margin: 0,
+  color: TEXT_MUTED,
+  fontSize: "11px",
+  lineHeight: "1.6",
 }
 
 export default function CaimedLayout({ preheader, children }: Props) {
@@ -75,18 +107,13 @@ export default function CaimedLayout({ preheader, children }: Props) {
       {preheader && <Preview>{preheader}</Preview>}
       <Body style={{ background: BG_PAGE, margin: 0, padding: "0 16px" }}>
         <Container style={containerStyle}>
-          {/* Header con logo + brand */}
+          {/* Header con wordmark tipográfico */}
           <Section style={headerStyle}>
-            <Img
-              src={logoUrl}
-              alt="CaimeD Medicina Preventiva"
-              width="180"
-              style={{ display: "block", margin: "0 auto 12px", maxWidth: "180px", height: "auto" }}
-            />
-            <Heading as="h1" style={brandNameStyle}>
-              CaimeD<sup style={{ fontSize: "10px", verticalAlign: "super" }}>®</sup>
+            <Heading as="h1" style={wordmarkStyle}>
+              CaimeD<span style={wordmarkRegStyle}>®</span>
             </Heading>
-            <Text style={brandTaglineStyle}>Medicina Preventiva</Text>
+            <div style={ornamentStyle}></div>
+            <Text style={taglineStyle}>Medicina Preventiva</Text>
           </Section>
 
           {/* Acento gradient (rosa → teal) */}
@@ -99,10 +126,10 @@ export default function CaimedLayout({ preheader, children }: Props) {
 
           {/* Footer */}
           <Section style={footerStyle}>
-            <Text style={{ margin: "0 0 4px", color: BRAND_NAVY_SOFT, fontWeight: 600 }}>
+            <Text style={footerBrandStyle}>
               CaimeD<sup style={{ fontSize: "8px", verticalAlign: "super" }}>®</sup> Medicina Preventiva
             </Text>
-            <Text style={{ margin: 0, color: TEXT_MUTED, fontSize: "11px" }}>
+            <Text style={footerTextStyle}>
               Este es un mensaje automático. Si tienes preguntas, responde a este correo o entra a la sección de Mensajes en la plataforma.
             </Text>
           </Section>
