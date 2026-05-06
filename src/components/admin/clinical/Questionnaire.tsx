@@ -12,6 +12,7 @@ import { countries } from '@/lib/clinical/data/countries';
 import { REGIMEN_AFILIACION, EPS_LIST, PREPAGADAS_LIST, PLAN_COMPLEMENTARIO_LIST } from '@/lib/clinical/data/colombia-health';
 import AntecedentesStep from './AntecedentesStep';
 import type { Cie10Selection } from '@/lib/clinical/data/cie10';
+import type { Lead } from '@/types/database';
 import ScoreChip from './ScoreChip';
 import { computeChipScore } from '@/lib/clinical/scoring';
 import type { ContextoClinico } from '@/lib/clinical/types';
@@ -49,6 +50,7 @@ interface QuestionnaireProps {
   existingProfile?: ExistingProfile | null;
   skipPersonalData?: boolean;
   editMode?: boolean;
+  leadData?: Lead | null;
 }
 
 export interface ExistingProfile {
@@ -76,7 +78,7 @@ export interface ExistingProfile {
   contacto_emergencia_telefono: string | null;
 }
 
-export default function Questionnaire({ onComplete, existingProfile, skipPersonalData, editMode }: QuestionnaireProps) {
+export default function Questionnaire({ onComplete, existingProfile, skipPersonalData, editMode, leadData }: QuestionnaireProps) {
   const shouldReduceMotion = useReducedMotion();
   const [step, setStep] = useState(editMode ? 3 : 1);
   const totalSteps = 18;
@@ -123,6 +125,75 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       complementary: existingProfile.plan_complementario ?? '',
     }));
   }, [existingProfile]);
+
+  const [showLeadBanner, setShowLeadBanner] = useState(false);
+  const leadPrefilledRef = useRef(false);
+  useEffect(() => {
+    if (leadPrefilledRef.current || !leadData) return;
+    leadPrefilledRef.current = true;
+    setShowLeadBanner(true);
+
+    setFormData(prev => {
+      const updates: Partial<typeof prev> = {};
+
+      // Weight and height
+      if (leadData.peso_kg) updates.weight = String(leadData.peso_kg);
+      if (leadData.talla_cm) updates.height = (leadData.talla_cm / 100).toFixed(2);
+
+      // Diseases — map chequeo names to Questionnaire names
+      if (leadData.enfermedades && leadData.enfermedades.length > 0) {
+        const diseaseMap: Record<string, string> = {
+          'Hipertensión arterial': 'Hipertensión',
+          'Diabetes tipo 2': 'Diabetes',
+          'Colesterol o triglicéridos altos': 'Dislipidemia',
+          'Infarto o angina previa': 'Infarto cardiaco',
+          'Enfermedad renal': 'Enfermedad del riñón',
+        };
+        const mapped = leadData.enfermedades
+          .map(d => diseaseMap[d] ?? d)
+          .filter(Boolean);
+        if (mapped.length > 0) updates.diseases = mapped;
+      }
+
+      // Medications
+      if (leadData.medicamentos_texto) {
+        updates.takesMeds = true;
+      }
+      if (leadData.acceso_medicamentos) {
+        updates.medAccess = leadData.acceso_medicamentos;
+      }
+
+      // Smoking
+      if (leadData.fumador_nivel != null) {
+        if (leadData.fumador_nivel === 1) {
+          updates.smoked = false;
+          updates.smokeStatus = [];
+        } else {
+          updates.smoked = true;
+          const smokeMap: Record<number, number[]> = {
+            2: [2], // dejé >1 año → ex >5 years (approximate)
+            3: [4], // dejé <1 año → ex <1 year
+            4: [6], // fumo ocasionalmente → fumador actual
+            5: [6], // fumo todos los días → fumador actual
+            6: [5], // vapeador → cigarrillo electrónico
+          };
+          updates.smokeStatus = smokeMap[leadData.fumador_nivel] ?? [];
+        }
+      }
+
+      // Activity
+      if (leadData.actividad_minutos != null) {
+        updates.activity = String(leadData.actividad_minutos);
+      }
+
+      // Sleep
+      if (leadData.horas_sueno != null) {
+        updates.sleep = String(leadData.horas_sueno);
+      }
+
+      return { ...prev, ...updates };
+    });
+  }, [leadData]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -1797,6 +1868,23 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
       <div className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-xl p-8 md:p-12 relative">
+        {showLeadBanner && leadData && (
+          <div className="mb-4 flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+            <p className="text-sm text-blue-800">
+              Este paciente completó el Chequeo Express el{' '}
+              {new Date(leadData.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}.{' '}
+              Los datos han sido prellenados como referencia.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowLeadBanner(false)}
+              className="ml-4 text-blue-400 hover:text-blue-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {step > 0 && step <= totalSteps && (
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">

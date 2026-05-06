@@ -219,3 +219,14 @@ export async function getStaffUsers(): Promise<
     .in('role', ['admin', 'clinico'])
   return data ?? []
 }
+
+export async function getLeadByCedula(cedula: string): Promise<Lead | null> {
+  const supabase = await createServerClient()
+  const { data } = await supabase
+    .from('leads')
+    .select('*')
+    .eq('cedula', cedula)
+    .neq('estado', 'descartado')
+    .maybeSingle()
+  return (data as Lead) ?? null
+}

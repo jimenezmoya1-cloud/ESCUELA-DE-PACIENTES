@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation"
 import Questionnaire, { type ExistingProfile } from "./Questionnaire"
 import { saveAssessment, upsertClinicalProfile } from "@/lib/clinical/actions"
 import type { ComponenteScore, AlertaItem } from "@/lib/clinical/types"
+import type { Lead } from "@/types/database"
 
 interface Props {
   userId: string
   profile?: ExistingProfile | null
   editMode?: boolean
+  leadData?: Lead | null
 }
 
 const URL_TO_COMPONENTE: Record<string, string> = {
@@ -72,7 +74,7 @@ function buildProfile(params: URLSearchParams) {
   }
 }
 
-export default function QuestionnaireWrapper({ userId, profile, editMode }: Props) {
+export default function QuestionnaireWrapper({ userId, profile, editMode, leadData }: Props) {
   const router = useRouter()
   const submittingRef = useRef(false)
 
@@ -81,6 +83,7 @@ export default function QuestionnaireWrapper({ userId, profile, editMode }: Prop
       existingProfile={profile ?? null}
       skipPersonalData={!editMode && !!profile}
       editMode={editMode}
+      leadData={leadData}
       onComplete={async (urlString) => {
         if (submittingRef.current) return
         submittingRef.current = true
