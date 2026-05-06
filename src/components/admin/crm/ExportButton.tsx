@@ -1,6 +1,6 @@
 'use client'
 
-import { Download } from 'lucide-react'
+import { FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import type { Lead } from '@/types/database'
 
@@ -65,10 +65,10 @@ export default function ExportButton({ leads }: { leads: Lead[] }) {
   return (
     <button
       onClick={handleExport}
-      className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+      className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2.5 text-[13px] font-bold text-emerald-700 transition-colors hover:bg-emerald-100"
     >
-      <Download className="h-4 w-4" />
-      Exportar
+      <FileSpreadsheet className="h-4 w-4" />
+      Exportar Excel
     </button>
   )
 }

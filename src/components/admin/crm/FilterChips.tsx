@@ -1,24 +1,12 @@
 'use client'
 
 const CHIPS = [
-  { key: 'todos', label: 'Todos', color: 'bg-gray-100 text-gray-700' },
-  { key: 'urgentes', label: 'Urgentes', color: 'bg-red-100 text-red-700' },
-  { key: 'activos', label: 'Activos', color: 'bg-yellow-100 text-yellow-700' },
-  {
-    key: 'seguimiento',
-    label: 'Seguimiento',
-    color: 'bg-blue-100 text-blue-700',
-  },
-  {
-    key: 'convertidos',
-    label: 'Convertidos',
-    color: 'bg-green-100 text-green-700',
-  },
-  {
-    key: 'descartados',
-    label: 'Descartados',
-    color: 'bg-gray-100 text-gray-500',
-  },
+  { key: 'todos', label: 'Todos', color: 'bg-[#F0F4FA] text-[#212B52]' },
+  { key: 'urgentes', label: 'Urgentes', color: 'bg-red-50 text-red-700' },
+  { key: 'activos', label: 'Activos', color: 'bg-amber-50 text-amber-700' },
+  { key: 'seguimiento', label: 'Seguimiento', color: 'bg-violet-50 text-violet-700' },
+  { key: 'convertidos', label: 'Convertidos', color: 'bg-emerald-50 text-emerald-700' },
+  { key: 'descartados', label: 'Descartados', color: 'bg-gray-100 text-gray-500' },
 ]
 
 interface FilterChipsProps {
@@ -40,16 +28,16 @@ export default function FilterChips({
           <button
             key={chip.key}
             onClick={() => onChange(chip.key)}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-all ${
               isActive
-                ? `${chip.color} ring-2 ring-[#06559F]/20`
-                : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                ? `${chip.color} shadow-sm ring-2 ring-[#06559F]/15`
+                : 'bg-white/60 text-[#6A778F] backdrop-blur-lg hover:bg-white/80'
             }`}
           >
             {chip.label}
             <span
-              className={`inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-semibold ${
-                isActive ? 'bg-white/60' : 'bg-gray-200/60'
+              className={`inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-extrabold ${
+                isActive ? 'bg-white/60' : 'bg-gray-200/50'
               }`}
             >
               {counts[chip.key] ?? 0}
