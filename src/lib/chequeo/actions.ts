@@ -147,7 +147,13 @@ async function syncLeadToSheets(record: Record<string, unknown>) {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET
   const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN
-  if (!sheetId || !clientId || !clientSecret || !refreshToken) return
+  if (!sheetId || !clientId || !clientSecret || !refreshToken) {
+    console.warn('[syncLeadToSheets] skipped: missing env vars', {
+      hasSheetId: !!sheetId, hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret, hasRefreshToken: !!refreshToken,
+    })
+    return
+  }
 
   try {
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -160,8 +166,12 @@ async function syncLeadToSheets(record: Record<string, unknown>) {
         grant_type: 'refresh_token',
       }),
     })
-    const { access_token } = await tokenRes.json()
-    if (!access_token) return
+    const tokenBody = await tokenRes.json()
+    const { access_token } = tokenBody
+    if (!access_token) {
+      console.error('[syncLeadToSheets] no access_token:', tokenBody)
+      return
+    }
 
     const fumadorLabels: Record<number, string> = {
       1: 'Nunca', 2: 'Dejó >1 año', 3: 'Dejó <1 año',
@@ -200,7 +210,7 @@ async function syncLeadToSheets(record: Record<string, unknown>) {
       record.estado,
     ]
 
-    await fetch(
+    const sheetsRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:W:append?valueInputOption=USER_ENTERED`,
       {
         method: 'POST',
@@ -211,8 +221,12 @@ async function syncLeadToSheets(record: Record<string, unknown>) {
         body: JSON.stringify({ values: [row] }),
       },
     )
-  } catch {
-    // Non-critical: don't block lead creation if Sheets sync fails
+    if (!sheetsRes.ok) {
+      const errBody = await sheetsRes.text()
+      console.error('[syncLeadToSheets] Sheets API error:', sheetsRes.status, errBody)
+    }
+  } catch (err) {
+    console.error('[syncLeadToSheets] failed:', err)
   }
 }
 
