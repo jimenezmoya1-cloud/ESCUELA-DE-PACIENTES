@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import type { ChequeoScore, ChequeoRegistration, ChequeoFormData } from './types'
+import type { Lead } from '@/types/database'
 
 interface InsertLeadInput {
   registration: ChequeoRegistration
@@ -113,4 +114,108 @@ export async function insertLead(
   }
 
   return { id: leadId, accountCreated }
+}
+
+// ── CRM server actions ──────────────────────────────────────────────
+
+export async function getLeads(): Promise<Lead[]> {
+  const supabase = await createServerClient()
+  const { data, error } = await supabase
+    .from('leads')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(`fetch leads failed: ${error.message}`)
+  return (data ?? []) as Lead[]
+}
+
+export async function getLeadById(leadId: string): Promise<Lead | null> {
+  const supabase = await createServerClient()
+  const { data } = await supabase
+    .from('leads')
+    .select('*')
+    .eq('id', leadId)
+    .single()
+  return (data as Lead) ?? null
+}
+
+export async function updateLeadEstado(
+  leadId: string,
+  estado: string,
+): Promise<void> {
+  const supabase = await createServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('unauthorized')
+  const adminSupabase = createAdminClient()
+  await adminSupabase
+    .from('leads')
+    .update({ estado, updated_at: new Date().toISOString() })
+    .eq('id', leadId)
+}
+
+export async function addContactEntry(
+  leadId: string,
+  entry: { tipo: string; resultado: string; nota: string },
+): Promise<void> {
+  const supabase = await createServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('unauthorized')
+  const adminSupabase = createAdminClient()
+  const { data: lead } = await adminSupabase
+    .from('leads')
+    .select('historial_contacto, intentos_contacto')
+    .eq('id', leadId)
+    .single()
+  const historial = (lead?.historial_contacto as unknown[]) ?? []
+  historial.unshift({ ...entry, fecha: new Date().toISOString(), por: user.id })
+  await adminSupabase
+    .from('leads')
+    .update({
+      historial_contacto: historial,
+      intentos_contacto: (lead?.intentos_contacto ?? 0) + 1,
+      ultimo_contacto_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', leadId)
+}
+
+export async function updateLeadNotes(
+  leadId: string,
+  notas: string,
+): Promise<void> {
+  const supabase = await createServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('unauthorized')
+  const adminSupabase = createAdminClient()
+  await adminSupabase
+    .from('leads')
+    .update({ notas, updated_at: new Date().toISOString() })
+    .eq('id', leadId)
+}
+
+export async function assignLead(
+  leadId: string,
+  staffId: string | null,
+): Promise<void> {
+  const adminSupabase = createAdminClient()
+  await adminSupabase
+    .from('leads')
+    .update({ asignado_a: staffId, updated_at: new Date().toISOString() })
+    .eq('id', leadId)
+}
+
+export async function getStaffUsers(): Promise<
+  { id: string; name: string; role: string }[]
+> {
+  const supabase = await createServerClient()
+  const { data } = await supabase
+    .from('users')
+    .select('id, name, role')
+    .in('role', ['admin', 'clinico'])
+  return data ?? []
 }
