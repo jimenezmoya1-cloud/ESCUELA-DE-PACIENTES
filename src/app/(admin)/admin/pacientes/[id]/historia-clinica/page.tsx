@@ -8,7 +8,7 @@ import QuestionnaireWrapper from "@/components/admin/clinical/QuestionnaireWrapp
 import PatientReportsListAdmin from "@/components/admin/clinical/PatientReportsListAdmin"
 import PatientReportView from "@/components/dashboard/clinical/PatientReportViewLoader"
 import { getAssessmentsByDateRange, getCreatorSignature } from "@/lib/clinical/actions"
-import { getLeadByCedula } from "@/lib/chequeo/actions"
+import { getLeadByCedula, getLeadByUserId } from "@/lib/chequeo/actions"
 import type { PatientClinicalProfile, AssessmentNivel } from "@/types/database"
 
 export default async function HistoriaClinicaPage({
@@ -31,7 +31,9 @@ export default async function HistoriaClinicaPage({
     .eq("user_id", id)
     .maybeSingle()
 
-  const lead = profile?.documento ? await getLeadByCedula(profile.documento) : null
+  const lead = profile?.documento
+    ? await getLeadByCedula(profile.documento)
+    : await getLeadByUserId(id)
 
   let assessments: Awaited<ReturnType<typeof getAssessmentsByDateRange>> = []
   try {

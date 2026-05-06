@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   HeartPulse, User, CreditCard, Calendar, Phone, Mail,
   Ruler, Scale, Activity, Pill, Package, Moon, Dumbbell,
-  Check, ChevronRight, ChevronLeft, Loader2, Link as LinkIcon, CheckCircle2, X
+  Check, ChevronRight, ChevronLeft, Loader2, Link as LinkIcon, CheckCircle2, X, ClipboardCheck
 } from 'lucide-react';
 import TermsModal from './TermsModal';
 import { colombia } from '@/lib/clinical/data/colombia';
@@ -127,20 +127,21 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
   }, [existingProfile]);
 
   const [showLeadBanner, setShowLeadBanner] = useState(false);
+  const [chequeoFields, setChequeoFields] = useState<Set<string>>(new Set());
   const leadPrefilledRef = useRef(false);
   useEffect(() => {
     if (leadPrefilledRef.current || !leadData) return;
     leadPrefilledRef.current = true;
     setShowLeadBanner(true);
 
+    const fields = new Set<string>();
+
     setFormData(prev => {
       const updates: Partial<typeof prev> = {};
 
-      // Weight and height
-      if (leadData.peso_kg) updates.weight = String(leadData.peso_kg);
-      if (leadData.talla_cm) updates.height = (leadData.talla_cm / 100).toFixed(2);
+      if (leadData.peso_kg) { updates.weight = String(leadData.peso_kg); fields.add('weight'); }
+      if (leadData.talla_cm) { updates.height = (leadData.talla_cm / 100).toFixed(2); fields.add('height'); }
 
-      // Diseases — map chequeo names to Questionnaire names
       if (leadData.enfermedades && leadData.enfermedades.length > 0) {
         const diseaseMap: Record<string, string> = {
           'Hipertensión arterial': 'Hipertensión',
@@ -152,48 +153,50 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         const mapped = leadData.enfermedades
           .map(d => diseaseMap[d] ?? d)
           .filter(Boolean);
-        if (mapped.length > 0) updates.diseases = mapped;
+        if (mapped.length > 0) { updates.diseases = mapped; fields.add('diseases'); }
       }
 
-      // Medications
-      if (leadData.medicamentos_texto) {
-        updates.takesMeds = true;
-      }
-      if (leadData.acceso_medicamentos) {
-        updates.medAccess = leadData.acceso_medicamentos;
-      }
+      if (leadData.medicamentos_texto) { updates.takesMeds = true; fields.add('takesMeds'); }
+      if (leadData.acceso_medicamentos) { updates.medAccess = leadData.acceso_medicamentos; fields.add('medAccess'); }
 
-      // Smoking
       if (leadData.fumador_nivel != null) {
+        fields.add('smoked');
         if (leadData.fumador_nivel === 1) {
           updates.smoked = false;
           updates.smokeStatus = [];
         } else {
           updates.smoked = true;
           const smokeMap: Record<number, number[]> = {
-            2: [2], // dejé >1 año → ex >5 years (approximate)
-            3: [4], // dejé <1 año → ex <1 year
-            4: [6], // fumo ocasionalmente → fumador actual
-            5: [6], // fumo todos los días → fumador actual
-            6: [5], // vapeador → cigarrillo electrónico
+            2: [2],
+            3: [4],
+            4: [6],
+            5: [6],
+            6: [5],
           };
           updates.smokeStatus = smokeMap[leadData.fumador_nivel] ?? [];
         }
       }
 
-      // Activity
-      if (leadData.actividad_minutos != null) {
-        updates.activity = String(leadData.actividad_minutos);
-      }
-
-      // Sleep
-      if (leadData.horas_sueno != null) {
-        updates.sleep = String(leadData.horas_sueno);
-      }
+      if (leadData.actividad_minutos != null) { updates.activity = String(leadData.actividad_minutos); fields.add('activity'); }
+      if (leadData.horas_sueno != null) { updates.sleep = String(leadData.horas_sueno); fields.add('sleep'); }
 
       return { ...prev, ...updates };
     });
+
+    setChequeoFields(fields);
   }, [leadData]);
+
+  const isChequeo = (field: string) => chequeoFields.has(field);
+  const chequeoRing = (field: string) => isChequeo(field) ? 'ring-2 ring-sky-300 bg-sky-50/40' : '';
+
+  function ChequeoCallout() {
+    return (
+      <div className="mb-4 flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5">
+        <ClipboardCheck className="h-4 w-4 shrink-0 text-sky-600" />
+        <p className="text-sm font-medium text-sky-700">Dato prellenado del Chequeo Express</p>
+      </div>
+    );
+  }
 
   // Form State
   const [formData, setFormData] = useState({
@@ -941,13 +944,16 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
         );
       case 6:
         return (
-          <AntecedentesStep
-            diseases={formData.diseases}
-            cie10={formData.cie10}
-            onChange={({ diseases, cie10 }) =>
-              setFormData({ ...formData, diseases, cie10 })
-            }
-          />
+          <div>
+            {isChequeo('diseases') && <ChequeoCallout />}
+            <AntecedentesStep
+              diseases={formData.diseases}
+              cie10={formData.cie10}
+              onChange={({ diseases, cie10 }) =>
+                setFormData({ ...formData, diseases, cie10 })
+              }
+            />
+          </div>
         );
       case 7:
         return (
@@ -990,6 +996,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 8:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {isChequeo('medAccess') && <ChequeoCallout />}
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
                 <Pill className="w-6 h-6 text-blue-600" /> Acceso a Medicamentos
@@ -1181,6 +1188,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
 
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[60vh] overflow-y-auto pr-2">
+            {(isChequeo('weight') || isChequeo('height')) && <ChequeoCallout />}
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
                 <Ruler className="w-6 h-6 text-blue-600" /> Antropometría
@@ -1188,41 +1196,41 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               <ScoreChip {...chipFor('Peso')} />
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <div className={`p-6 rounded-2xl border ${isChequeo('height') ? 'bg-sky-50/60 border-sky-200' : 'bg-slate-50 border-slate-100'}`}>
               <label className="block text-lg font-bold text-slate-700 mb-4 flex justify-between items-center">
                 <span>¿Cuánto mides? (m)</span>
-                <input 
-                  type="number" 
-                  min="1.30" max="2.20" step="0.01" 
+                <input
+                  type="number"
+                  min="1.30" max="2.20" step="0.01"
                   value={formData.height}
                   onChange={e => setFormData({...formData, height: e.target.value})}
-                  className="w-24 p-2 text-right rounded-lg border border-slate-300 focus:border-blue-500 outline-none text-blue-600 font-bold"
+                  className={`w-24 p-2 text-right rounded-lg border focus:border-blue-500 outline-none font-bold ${isChequeo('height') ? 'border-sky-300 text-sky-700 bg-white' : 'border-slate-300 text-blue-600'}`}
                 />
               </label>
-              <input 
-                type="range" min="1.30" max="2.20" step="0.01" 
-                value={formData.height} 
+              <input
+                type="range" min="1.30" max="2.20" step="0.01"
+                value={formData.height}
                 onChange={e => setFormData({...formData, height: String(parseFloat(e.target.value))})}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${isChequeo('height') ? 'bg-sky-200 accent-sky-600' : 'bg-slate-200 accent-blue-600'}`}
               />
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <div className={`p-6 rounded-2xl border ${isChequeo('weight') ? 'bg-sky-50/60 border-sky-200' : 'bg-slate-50 border-slate-100'}`}>
               <label className="block text-lg font-bold text-slate-700 mb-4 flex justify-between items-center">
                 <span>¿Cuánto pesas aproximadamente? (kg)</span>
-                <input 
-                  type="number" 
-                  min="30" max="200" step="0.5" 
+                <input
+                  type="number"
+                  min="30" max="200" step="0.5"
                   value={formData.weight}
                   onChange={e => setFormData({...formData, weight: e.target.value})}
-                  className="w-24 p-2 text-right rounded-lg border border-slate-300 focus:border-blue-500 outline-none text-blue-600 font-bold"
+                  className={`w-24 p-2 text-right rounded-lg border focus:border-blue-500 outline-none font-bold ${isChequeo('weight') ? 'border-sky-300 text-sky-700 bg-white' : 'border-slate-300 text-blue-600'}`}
                 />
               </label>
-              <input 
-                type="range" min="30" max="200" step="0.5" 
-                value={formData.weight} 
+              <input
+                type="range" min="30" max="200" step="0.5"
+                value={formData.weight}
                 onChange={e => setFormData({...formData, weight: String(parseFloat(e.target.value))})}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${isChequeo('weight') ? 'bg-sky-200 accent-sky-600' : 'bg-slate-200 accent-blue-600'}`}
               />
             </div>
 
@@ -1452,6 +1460,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 14:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {isChequeo('smoked') && <ChequeoCallout />}
             <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
               <Activity className="w-6 h-6 text-blue-600" /> Tabaquismo
             </h2>
@@ -1541,6 +1550,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 16: {
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[60vh] overflow-y-auto pr-2">
+            {(isChequeo('activity') || isChequeo('sleep')) && <ChequeoCallout />}
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
                 <Dumbbell className="w-6 h-6 text-blue-600" /> Actividad Física y Sueño
@@ -1551,7 +1561,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className={`p-6 rounded-2xl border shadow-sm ${isChequeo('activity') ? 'bg-sky-50/60 border-sky-200' : 'bg-white border-slate-200'}`}>
               <label className="block text-slate-700 font-bold mb-2" htmlFor="activity-minutes">
                 En promedio, ¿cuántos minutos a la semana dedica a actividades físicas moderadas o vigorosas?
               </label>
@@ -1568,7 +1578,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                   step={1}
                   value={formData.activity}
                   onChange={(e) => setFormData({ ...formData, activity: e.target.value })}
-                  className="w-40 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 text-base focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className={`w-40 rounded-xl border bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 ${isChequeo('activity') ? 'border-sky-300 text-sky-700 font-bold focus:border-sky-500 focus:ring-sky-200' : 'border-slate-200 text-slate-800 focus:border-blue-600 focus:ring-blue-200'}`}
                   placeholder="0"
                 />
                 <span className="text-slate-600 text-sm">minutos por semana</span>
@@ -1576,7 +1586,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               <p className="mt-2 text-xs text-slate-500">Rango aceptado: 0 a 1440 minutos.</p>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className={`p-6 rounded-2xl border shadow-sm ${isChequeo('sleep') ? 'bg-sky-50/60 border-sky-200' : 'bg-white border-slate-200'}`}>
               <label className="block text-slate-700 font-bold mb-4" htmlFor="sleep-hours">
                 En promedio, ¿cuántas horas duerme por noche?
               </label>
@@ -1590,7 +1600,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                   step={0.5}
                   value={formData.sleep}
                   onChange={(e) => setFormData({ ...formData, sleep: e.target.value })}
-                  className="w-40 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 text-base focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className={`w-40 rounded-xl border bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 ${isChequeo('sleep') ? 'border-sky-300 text-sky-700 font-bold focus:border-sky-500 focus:ring-sky-200' : 'border-slate-200 text-slate-800 focus:border-blue-600 focus:ring-blue-200'}`}
                   placeholder="0"
                 />
                 <span className="text-slate-600 text-sm">horas por noche</span>

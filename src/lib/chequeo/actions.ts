@@ -347,3 +347,15 @@ export async function getLeadByCedula(cedula: string): Promise<Lead | null> {
     .maybeSingle()
   return (data as Lead) ?? null
 }
+
+export async function getLeadByUserId(userId: string): Promise<Lead | null> {
+  const supabase = await createServerClient()
+  const { data } = await supabase
+    .from('leads')
+    .select('*')
+    .eq('user_id', userId)
+    .neq('estado', 'descartado')
+    .order('created_at', { ascending: false })
+    .maybeSingle()
+  return (data as Lead) ?? null
+}
