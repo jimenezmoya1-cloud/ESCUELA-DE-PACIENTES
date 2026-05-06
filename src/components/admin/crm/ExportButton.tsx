@@ -15,17 +15,42 @@ function calcAge(dob: string): number {
 
 export default function ExportButton({ leads }: { leads: Lead[] }) {
   const handleExport = () => {
+    const fumadorLabels: Record<number, string> = {
+      1: 'Nunca', 2: 'Dejó >1 año', 3: 'Dejó <1 año',
+      4: 'Ocasional', 5: 'Diario', 6: 'Vapeador',
+    }
+    const accesoLabels: Record<number, string> = {
+      1: 'Siempre los consigo', 2: 'A veces difícil', 3: 'Frecuentemente no',
+    }
+    const adherenciaLabels: Record<number, string> = {
+      1: 'Nunca olvida', 2: 'A veces olvida', 3: 'No toma medicamentos',
+    }
+
     const rows = leads.map(l => ({
-      Nombre: `${l.nombre} ${l.apellido}`,
+      'Fecha registro': new Date(l.created_at).toLocaleDateString('es-CO'),
+      Nombre: l.nombre,
+      Apellido: l.apellido,
       Cédula: l.cedula,
+      'Fecha nacimiento': l.fecha_nacimiento,
+      Sexo: l.sexo ?? '',
       Edad: calcAge(l.fecha_nacimiento),
       Teléfono: l.telefono,
       Email: l.email ?? '',
+      Departamento: l.departamento,
+      Municipio: l.municipio,
+      'Peso (kg)': l.peso_kg ?? '',
+      'Talla (cm)': l.talla_cm ?? '',
+      IMC: l.imc ?? '',
+      Condiciones: l.enfermedades.join(', '),
+      Medicamentos: l.medicamentos_texto ?? '',
+      'Acceso medicamentos': l.acceso_medicamentos ? accesoLabels[l.acceso_medicamentos] ?? '' : '',
+      Adherencia: l.adherencia_simple ? adherenciaLabels[l.adherencia_simple] ?? '' : '',
+      Tabaquismo: l.fumador_nivel ? fumadorLabels[l.fumador_nivel] ?? '' : '',
+      'Actividad (min/sem)': l.actividad_minutos ?? '',
+      'Sueño (hrs)': l.horas_sueno ?? '',
       Score: l.score_parcial,
       Nivel: l.nivel,
-      Condiciones: l.enfermedades.join(', '),
       Estado: l.estado,
-      'Fecha registro': new Date(l.created_at).toLocaleDateString('es-CO'),
       'Último contacto': l.ultimo_contacto_at ? new Date(l.ultimo_contacto_at).toLocaleDateString('es-CO') : '',
       Intentos: l.intentos_contacto,
     }))

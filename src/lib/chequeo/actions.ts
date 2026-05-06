@@ -118,11 +118,24 @@ export async function insertLead(
     nombre: reg.nombre,
     apellido: reg.apellido,
     cedula: reg.cedula,
+    fecha_nacimiento: reg.fechaNacimiento,
+    sexo: reg.sexo || '',
     telefono: reg.telefono,
-    email: reg.email,
+    email: reg.email || '',
+    departamento: reg.departamento,
+    municipio: reg.municipio,
+    peso_kg: pesoKg,
+    talla_cm: tallaCm,
+    imc,
+    enfermedades,
+    medicamentos_texto: fd.medicamentosTexto || '',
+    acceso_medicamentos: fd.accesoMedicamentos,
+    adherencia_simple: fd.adherenciaSimple,
+    fumador_nivel: fd.fumadorNivel,
+    actividad_minutos: fd.actividadMinutos,
+    horas_sueno: fd.horasSueno,
     score_parcial: score.scoreParcial,
     nivel: score.nivel,
-    enfermedades,
     estado: existing ? existing.estado : 'nuevo',
   }).catch(() => {})
 
@@ -150,20 +163,45 @@ async function syncLeadToSheets(record: Record<string, unknown>) {
     const { access_token } = await tokenRes.json()
     if (!access_token) return
 
+    const fumadorLabels: Record<number, string> = {
+      1: 'Nunca', 2: 'Dejó >1 año', 3: 'Dejó <1 año',
+      4: 'Ocasional', 5: 'Diario', 6: 'Vapeador',
+    }
+    const accesoLabels: Record<number, string> = {
+      1: 'Siempre los consigo', 2: 'A veces difícil', 3: 'Frecuentemente no',
+    }
+    const adherenciaLabels: Record<number, string> = {
+      1: 'Nunca olvida', 2: 'A veces olvida', 3: 'No toma medicamentos',
+    }
+
     const row = [
       new Date(record.created_at as string).toLocaleDateString('es-CO'),
-      `${record.nombre} ${record.apellido}`,
+      record.nombre,
+      record.apellido,
       record.cedula,
+      record.fecha_nacimiento,
+      record.sexo,
       record.telefono,
       record.email ?? '',
+      record.departamento,
+      record.municipio,
+      record.peso_kg ?? '',
+      record.talla_cm ?? '',
+      record.imc ?? '',
+      (record.enfermedades as string[] ?? []).join(', '),
+      record.medicamentos_texto ?? '',
+      accesoLabels[record.acceso_medicamentos as number] ?? '',
+      adherenciaLabels[record.adherencia_simple as number] ?? '',
+      fumadorLabels[record.fumador_nivel as number] ?? '',
+      record.actividad_minutos ?? '',
+      record.horas_sueno ?? '',
       record.score_parcial,
       record.nivel,
-      (record.enfermedades as string[] ?? []).join(', '),
       record.estado,
     ]
 
     await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:I:append?valueInputOption=USER_ENTERED`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:W:append?valueInputOption=USER_ENTERED`,
       {
         method: 'POST',
         headers: {
