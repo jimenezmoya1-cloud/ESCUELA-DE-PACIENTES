@@ -10,6 +10,10 @@
   --color-success: #58AE33;
   --color-error: #EF4444;
   --color-warning: #F59E0B;
+  --color-hero-deep: #080e1f;
+  --color-hero-mid: #0f1b35;
+  --color-hero-light: #162a50;
+  --font-heading: var(--font-heading);
 }
 
 @font-face {
@@ -236,6 +240,34 @@ h3 {
   animation: gradient-drift 16s ease-in-out infinite;
 }
 
+/* Landing page animations */
+@keyframes float-particle {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(-14px); opacity: 1; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(6, 85, 159, 0.3); }
+  50% { box-shadow: 0 4px 30px rgba(6, 85, 159, 0.6); }
+}
+
+@keyframes ekg-draw {
+  0% { stroke-dashoffset: 1000; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-float-particle {
+  animation: float-particle 4s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2.5s ease-in-out infinite;
+}
+
+.animate-ekg-draw {
+  animation: ekg-draw 3s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-float-orb,
   .animate-float-orb-reverse,
@@ -254,5 +286,10 @@ h3 {
     opacity: 1;
     transform: none;
     filter: none;
+  }
+  .animate-float-particle,
+  .animate-glow-pulse,
+  .animate-ekg-draw {
+    animation: none;
   }
 }
