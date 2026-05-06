@@ -6,7 +6,6 @@ export interface ChequeoFormData {
   tomaMedicamentos: boolean | null
   medicamentosTexto: string
   accesoMedicamentos: number | null
-  adherenciaSimple: number | null
   fumadorNivel: number | null
   actividadMinutos: number | null
   horasSueno: number | null

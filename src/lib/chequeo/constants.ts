@@ -24,12 +24,6 @@ export const OPCIONES_ACCESO = [
   { valor: 3, label: 'Frecuentemente no los consigo' },
 ] as const
 
-export const OPCIONES_ADHERENCIA = [
-  { valor: 1, label: 'No, nunca' },
-  { valor: 2, label: 'Sí, a veces' },
-  { valor: 3, label: 'No tomo medicamentos' },
-] as const
-
 export const INSIGHTS_MAP: Record<string, { finding: string; help: string }> = {
   Peso: {
     finding: 'Tu índice de masa corporal está fuera del rango ideal.',

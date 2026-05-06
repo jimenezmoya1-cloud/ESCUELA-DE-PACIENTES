@@ -23,7 +23,6 @@ const INITIAL_FORM_DATA: ChequeoFormData = {
   tomaMedicamentos: null,
   medicamentosTexto: '',
   accesoMedicamentos: null,
-  adherenciaSimple: null,
   fumadorNivel: null,
   actividadMinutos: null,
   horasSueno: null,
@@ -48,11 +47,9 @@ function isStepValid(step: number, data: ChequeoFormData): boolean {
     case 2:
       if (data.tomaMedicamentos === null) return false
       if (data.tomaMedicamentos === true) {
-        return (
-          data.accesoMedicamentos !== null && data.adherenciaSimple !== null
-        )
+        return data.accesoMedicamentos !== null
       }
-      return true // tomaMedicamentos === false, adherencia auto-set to 3
+      return true
     case 3:
       return data.fumadorNivel !== null
     case 4:
