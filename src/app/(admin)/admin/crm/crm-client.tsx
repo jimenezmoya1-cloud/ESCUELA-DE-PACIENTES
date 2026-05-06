@@ -9,6 +9,7 @@ import { addContactEntry, updateLeadEstado } from '@/lib/chequeo/actions'
 import FilterChips from '@/components/admin/crm/FilterChips'
 import LeadCard from '@/components/admin/crm/LeadCard'
 import ModoContacto from '@/components/admin/crm/ModoContacto'
+import ExportButton from '@/components/admin/crm/ExportButton'
 
 interface CrmClientProps {
   initialLeads: Lead[]
@@ -109,14 +110,17 @@ export default function CrmClient({ initialLeads }: CrmClientProps) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-bold text-[#212B52]">CRM Leads</h1>
-        <button
-          onClick={() => setShowModoContacto(true)}
-          disabled={contactableLeads.length === 0}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#06559F] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#06559F]/90 disabled:opacity-50"
-        >
-          <PhoneCall className="h-4 w-4" />
-          Modo Contacto
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportButton leads={filteredLeads} />
+          <button
+            onClick={() => setShowModoContacto(true)}
+            disabled={contactableLeads.length === 0}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#06559F] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#06559F]/90 disabled:opacity-50"
+          >
+            <PhoneCall className="h-4 w-4" />
+            Modo Contacto
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
