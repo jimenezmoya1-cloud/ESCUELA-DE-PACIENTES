@@ -34,7 +34,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Rutas públicas (no requieren auth)
-  const publicRoutes = ["/login", "/registro", "/auth/callback", "/reset-password", "/api/auth"]
+  const publicRoutes = ["/login", "/registro", "/auth/callback", "/reset-password", "/api/auth", "/chequeo"]
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route))
 
   // Si no hay usuario y la ruta NO es pública, redirigir a login
