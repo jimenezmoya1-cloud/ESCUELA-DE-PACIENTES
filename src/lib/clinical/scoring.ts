@@ -160,6 +160,13 @@ export const calcularPuntajeExacto = (
       if (valor <= 21) return reglaDeTresRango(valor, 12, 21, 51, 79)
       return reglaDeTresRango(valor, 22, 25, 80, 100)
 
+    case 'Desconoce condición':
+      if (valor === 0) return 100
+      if (valor === 1) return 80
+      if (valor === 2) return 60
+      if (valor === 3) return 30
+      return 0
+
     default:
       return 0
   }
