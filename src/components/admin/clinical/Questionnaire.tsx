@@ -139,6 +139,20 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
     setFormData(prev => {
       const updates: Partial<typeof prev> = {};
 
+      if (leadData.nombre) { updates.firstName = leadData.nombre; fields.add('firstName'); }
+      if (leadData.apellido) { updates.firstLastName = leadData.apellido; fields.add('firstLastName'); }
+      if (leadData.cedula) { updates.docNumber = leadData.cedula; fields.add('docNumber'); }
+      if (leadData.fecha_nacimiento) { updates.dob = leadData.fecha_nacimiento; fields.add('dob'); }
+      if (leadData.sexo) {
+        const sexoMap: Record<string, string> = { M: 'Masculino', F: 'Femenino', Masculino: 'Masculino', Femenino: 'Femenino' };
+        updates.gender = sexoMap[leadData.sexo] ?? leadData.sexo;
+        fields.add('gender');
+      }
+      if (leadData.telefono) { updates.phone = leadData.telefono; fields.add('phone'); }
+      if (leadData.email) { updates.email = leadData.email; fields.add('email'); }
+      if (leadData.departamento) { updates.residenceDept = leadData.departamento; fields.add('residenceDept'); }
+      if (leadData.municipio) { updates.residenceMun = leadData.municipio; fields.add('residenceMun'); }
+
       if (leadData.peso_kg) { updates.weight = String(leadData.peso_kg); fields.add('weight'); }
       if (leadData.talla_cm) { updates.height = (leadData.talla_cm / 100).toFixed(2); fields.add('height'); }
 
@@ -616,13 +630,14 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
       case 3:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[60vh] overflow-y-auto pr-2">
+            {(isChequeo('firstName') || isChequeo('docNumber') || isChequeo('phone')) && <ChequeoCallout />}
             <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3 sticky top-0 bg-white/95 backdrop-blur-sm py-2 z-10">
               <User className="w-6 h-6 text-blue-600" /> Datos Personales
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Primer Nombre *</label>
-                <input type="text" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" />
+                <input type="text" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className={`w-full p-3 rounded-xl border outline-none transition-all ${isChequeo('firstName') ? 'border-sky-300 bg-sky-50/40 text-sky-700 focus:border-sky-500 focus:ring-2 focus:ring-sky-200' : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'}`} />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Segundo Nombre</label>
@@ -630,7 +645,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Primer Apellido *</label>
-                <input type="text" value={formData.firstLastName} onChange={e => setFormData({...formData, firstLastName: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" />
+                <input type="text" value={formData.firstLastName} onChange={e => setFormData({...formData, firstLastName: e.target.value})} className={`w-full p-3 rounded-xl border outline-none transition-all ${isChequeo('firstLastName') ? 'border-sky-300 bg-sky-50/40 text-sky-700 focus:border-sky-500 focus:ring-2 focus:ring-sky-200' : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'}`} />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Segundo Apellido</label>
@@ -656,28 +671,28 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-bold text-slate-700 mb-1">Número de Documento *</label>
-                <input type="text" value={formData.docNumber} onChange={e => setFormData({...formData, docNumber: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" />
+                <input type="text" value={formData.docNumber} onChange={e => setFormData({...formData, docNumber: e.target.value})} className={`w-full p-3 rounded-xl border outline-none transition-all ${isChequeo('docNumber') ? 'border-sky-300 bg-sky-50/40 text-sky-700 focus:border-sky-500 focus:ring-2 focus:ring-sky-200' : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'}`} />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-2"><Calendar className="w-4 h-4"/> Fecha de Nacimiento *</label>
-                <input type="date" value={formData.dob} onChange={e => setFormData({...formData, dob: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" />
+                <input type="date" value={formData.dob} onChange={e => setFormData({...formData, dob: e.target.value})} className={`w-full p-3 rounded-xl border outline-none transition-all ${isChequeo('dob') ? 'border-sky-300 bg-sky-50/40 text-sky-700 focus:border-sky-500 focus:ring-2 focus:ring-sky-200' : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'}`} />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-2"><Phone className="w-4 h-4"/> Teléfono *</label>
-                <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" />
+                <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={`w-full p-3 rounded-xl border outline-none transition-all ${isChequeo('phone') ? 'border-sky-300 bg-sky-50/40 text-sky-700 focus:border-sky-500 focus:ring-2 focus:ring-sky-200' : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'}`} />
               </div>
             </div>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-2"><Mail className="w-4 h-4"/> Correo Electrónico *</label>
-              <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all" />
+              <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full p-3 rounded-xl border outline-none transition-all ${isChequeo('email') ? 'border-sky-300 bg-sky-50/40 text-sky-700 focus:border-sky-500 focus:ring-2 focus:ring-sky-200' : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'}`} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Género *</label>
-                <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
+                <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className={`w-full p-3 rounded-xl border outline-none ${isChequeo('gender') ? 'border-sky-300 bg-sky-50/40 text-sky-700 focus:border-sky-500' : 'border-slate-200 focus:border-blue-500'}`}>
                   <option value="">Seleccione...</option>
                   <option value="Masculino">Masculino</option>
                   <option value="Femenino">Femenino</option>
@@ -711,7 +726,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                 <>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1">Departamento *</label>
-                    <select value={formData.residenceDept} onChange={e => setFormData({...formData, residenceDept: e.target.value, residenceMun: ''})} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
+                    <select value={formData.residenceDept} onChange={e => setFormData({...formData, residenceDept: e.target.value, residenceMun: ''})} className={`w-full p-3 rounded-xl border outline-none ${isChequeo('residenceDept') ? 'border-sky-300 bg-sky-50/40 text-sky-700 focus:border-sky-500' : 'border-slate-200 focus:border-blue-500'}`}>
                       <option value="">Seleccione...</option>
                       {colombia.map(d => (
                         <option key={d.department} value={d.department}>{d.department}</option>
@@ -720,7 +735,7 @@ export default function Questionnaire({ onComplete, existingProfile, skipPersona
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1">Municipio *</label>
-                    <select value={formData.residenceMun} onChange={e => setFormData({...formData, residenceMun: e.target.value})} disabled={!formData.residenceDept} className="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-400">
+                    <select value={formData.residenceMun} onChange={e => setFormData({...formData, residenceMun: e.target.value})} disabled={!formData.residenceDept} className={`w-full p-3 rounded-xl border outline-none disabled:bg-slate-100 disabled:text-slate-400 ${isChequeo('residenceMun') ? 'border-sky-300 bg-sky-50/40 text-sky-700 focus:border-sky-500' : 'border-slate-200 focus:border-blue-500'}`}>
                       <option value="">Seleccione...</option>
                       {formData.residenceDept && colombia.find(d => d.department === formData.residenceDept)?.municipalities.map(m => (
                         <option key={m} value={m}>{m}</option>
