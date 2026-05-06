@@ -45,11 +45,11 @@ export default function ConfirmationCard({
             Llama sin compromiso y entérate más de nuestro programa.
           </p>
           <a
-            href="tel:601-390-1987"
+            href="tel:+573152103063"
             className="inline-flex items-center gap-2 text-base font-medium text-[#06559F] hover:underline"
           >
             <Phone className="h-4 w-4" aria-hidden="true" />
-            601-390-1987
+            +57 315 210 3063
           </a>
         </div>
 
