@@ -356,6 +356,6 @@ export async function getLeadByUserId(userId: string): Promise<Lead | null> {
     .eq('user_id', userId)
     .neq('estado', 'descartado')
     .order('created_at', { ascending: false })
-    .maybeSingle()
-  return (data as Lead) ?? null
+    .limit(1)
+  return ((data?.[0]) as Lead) ?? null
 }

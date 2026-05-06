@@ -31,9 +31,14 @@ export default async function HistoriaClinicaPage({
     .eq("user_id", id)
     .maybeSingle()
 
-  const lead = profile?.documento
-    ? await getLeadByCedula(profile.documento)
-    : await getLeadByUserId(id)
+  let lead = null
+  try {
+    lead = profile?.documento
+      ? await getLeadByCedula(profile.documento)
+      : await getLeadByUserId(id)
+  } catch {
+    // lead lookup can fail if table schema differs
+  }
 
   let assessments: Awaited<ReturnType<typeof getAssessmentsByDateRange>> = []
   try {
