@@ -113,7 +113,69 @@ export async function insertLead(
     await serverSupabase.auth.signInWithOtp({ email: reg.email })
   }
 
+  syncLeadToSheets({
+    created_at: new Date().toISOString(),
+    nombre: reg.nombre,
+    apellido: reg.apellido,
+    cedula: reg.cedula,
+    telefono: reg.telefono,
+    email: reg.email,
+    score_parcial: score.scoreParcial,
+    nivel: score.nivel,
+    enfermedades,
+    estado: existing ? existing.estado : 'nuevo',
+  }).catch(() => {})
+
   return { id: leadId, accountCreated }
+}
+
+async function syncLeadToSheets(record: Record<string, unknown>) {
+  const sheetId = process.env.GOOGLE_SHEET_ID
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN
+  if (!sheetId || !clientId || !clientSecret || !refreshToken) return
+
+  try {
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      }),
+    })
+    const { access_token } = await tokenRes.json()
+    if (!access_token) return
+
+    const row = [
+      new Date(record.created_at as string).toLocaleDateString('es-CO'),
+      `${record.nombre} ${record.apellido}`,
+      record.cedula,
+      record.telefono,
+      record.email ?? '',
+      record.score_parcial,
+      record.nivel,
+      (record.enfermedades as string[] ?? []).join(', '),
+      record.estado,
+    ]
+
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:I:append?valueInputOption=USER_ENTERED`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ values: [row] }),
+      },
+    )
+  } catch {
+    // Non-critical: don't block lead creation if Sheets sync fails
+  }
 }
 
 // ── CRM server actions ──────────────────────────────────────────────
