@@ -374,3 +374,56 @@ export interface PatientAssessment {
   raw_questionnaire: unknown
   notes: string | null
 }
+
+// Chequeo Express Leads
+export type LeadEstado = 'nuevo' | 'contactado' | 'interesado' | 'agendado' | 'convertido' | 'descartado'
+export type LeadNivel = 'Verde' | 'Amarillo' | 'Rojo'
+
+export interface LeadContactEntry {
+  fecha: string
+  tipo: 'llamada' | 'whatsapp' | 'email'
+  resultado: string
+  nota: string
+  por: string
+}
+
+export interface Lead {
+  id: string
+  created_at: string
+  updated_at: string
+  cedula: string
+  nombre: string
+  apellido: string
+  fecha_nacimiento: string
+  sexo: string | null
+  telefono: string
+  email: string | null
+  pais: string
+  departamento: string
+  municipio: string
+  peso_kg: number | null
+  talla_cm: number | null
+  imc: number | null
+  enfermedades: string[]
+  medicamentos_texto: string | null
+  acceso_medicamentos: number | null
+  adherencia_simple: number | null
+  fumador_nivel: number | null
+  actividad_minutos: number | null
+  horas_sueno: number | null
+  is_dm2: boolean
+  is_sca: boolean
+  score_parcial: number
+  componentes_scores: AssessmentComponent[]
+  nivel: LeadNivel
+  estado: LeadEstado
+  prioridad_score: number
+  asignado_a: string | null
+  fuente: string
+  notas: string | null
+  user_id: string | null
+  cuenta_creada: boolean
+  ultimo_contacto_at: string | null
+  intentos_contacto: number
+  historial_contacto: LeadContactEntry[]
+}
