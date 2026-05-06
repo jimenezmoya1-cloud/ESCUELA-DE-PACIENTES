@@ -45,11 +45,11 @@ export default function ConfirmationCard({
             Llama sin compromiso y entérate más de nuestro programa.
           </p>
           <a
-            href="tel:601-XXX-XXXX"
+            href="tel:601-390-1987"
             className="inline-flex items-center gap-2 text-base font-medium text-[#06559F] hover:underline"
           >
             <Phone className="h-4 w-4" aria-hidden="true" />
-            601-XXX-XXXX
+            601-390-1987
           </a>
         </div>
 

@@ -46,11 +46,15 @@ function calcAge(fechaNacimiento: string): number {
 
 function fumadorLabel(nivel: number | null): string {
   if (nivel === null) return 'N/A'
-  if (nivel === 0) return 'No fuma'
-  if (nivel <= 5) return 'Ocasional'
-  if (nivel <= 10) return 'Leve'
-  if (nivel <= 20) return 'Moderado'
-  return 'Severo'
+  const labels: Record<number, string> = {
+    1: 'No fuma',
+    2: 'Ex >1 año',
+    3: 'Ex <1 año',
+    4: 'Ocasional',
+    5: 'Fumador diario',
+    6: 'Vapeador',
+  }
+  return labels[nivel] ?? 'N/A'
 }
 
 export default function LeadDetailClient({

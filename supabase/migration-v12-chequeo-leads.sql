@@ -71,9 +71,11 @@ create index idx_leads_cedula on leads(cedula);
 -- 3. RLS
 alter table leads enable row level security;
 
-create policy "leads_insert_public"
+-- Public INSERT not needed: insertLead() uses admin client (service role key).
+-- Keeping RLS restrictive — only staff can insert via regular client.
+create policy "leads_insert_staff"
   on leads for insert
-  with check (true);
+  with check (public.is_admin() or public.is_clinico());
 
 create policy "leads_select_staff"
   on leads for select

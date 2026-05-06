@@ -202,6 +202,9 @@ export async function assignLead(
   leadId: string,
   staffId: string | null,
 ): Promise<void> {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('unauthorized')
   const adminSupabase = createAdminClient()
   await adminSupabase
     .from('leads')

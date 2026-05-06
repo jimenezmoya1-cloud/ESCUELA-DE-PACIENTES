@@ -22,11 +22,18 @@ export function calcularScoreParcial(data: ChequeoFormData): ChequeoScore {
     iiefAplica: false,
   }
 
-  const desconoceValor = data.enfermedades.includes('Ninguna') ? 0 : 0
+  const desconoceValor = data.enfermedades.filter(e => e !== 'Ninguna').length > 0 ? 0 : 2
+
+  // Chequeo options use different semantics than scoring.ts expects:
+  //   Chequeo 2 "Dejé >1 año" → scoring 3 (ex 1-5 años, conservative estimate)
+  //   Chequeo 3 "Dejé <1 año" → scoring 4 (ex <1 año)
+  //   Chequeo 4 "Fumo ocasionalmente" → scoring 5 (fumador actual)
+  const chequeoToScoringNicotina: Record<number, number> = { 1: 1, 2: 3, 3: 4, 4: 5, 5: 5, 6: 6 }
+  const nicotinaValor = chequeoToScoringNicotina[data.fumadorNivel ?? 1] ?? 1
 
   const componentes = [
     { nombre: 'Peso', valor: imc, puntaje: calcularPuntajeExacto('Peso', imc, contexto) },
-    { nombre: 'Nicotina', valor: data.fumadorNivel ?? 1, puntaje: calcularPuntajeExacto('Nicotina', data.fumadorNivel ?? 1, contexto) },
+    { nombre: 'Nicotina', valor: nicotinaValor, puntaje: calcularPuntajeExacto('Nicotina', nicotinaValor, contexto) },
     { nombre: 'Actividad física', valor: data.actividadMinutos ?? 0, puntaje: calcularPuntajeExacto('Actividad física', data.actividadMinutos ?? 0, contexto) },
     { nombre: 'Sueño', valor: data.horasSueno ?? 7, puntaje: calcularPuntajeExacto('Sueño', data.horasSueno ?? 7, contexto) },
     { nombre: 'Acceso a medicamentos', valor: data.accesoMedicamentos ?? 1, puntaje: calcularPuntajeExacto('Acceso a medicamentos', data.accesoMedicamentos ?? 1, contexto) },
