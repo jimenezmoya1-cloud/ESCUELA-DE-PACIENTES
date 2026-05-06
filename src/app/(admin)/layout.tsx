@@ -6,7 +6,7 @@ import AdminShell from "@/components/admin/AdminShell"
 export const dynamic = "force-dynamic"
 
 // Rutas permitidas para clínicos
-const CLINICO_ALLOWED_PREFIXES = ["/admin/pacientes", "/admin/clinico"]
+const CLINICO_ALLOWED_PREFIXES = ["/admin/pacientes", "/admin/clinico", "/admin/crm"]
 
 export default async function AdminLayout({
   children,

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { StaffProfile } from "@/lib/auth/profile"
+import { Contact } from "lucide-react"
 
 type NavItem = {
   href: string
@@ -92,6 +93,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/codigos", label: "Códigos de acceso", icon: codesIcon },
       { href: "/admin/personal", label: "Personal", icon: personalIcon },
       { href: "/admin/citas", label: "Citas", icon: calendarIcon },
+      { href: "/admin/crm", label: "CRM Leads", icon: <Contact className="h-5 w-5" /> },
     ],
   },
   {
